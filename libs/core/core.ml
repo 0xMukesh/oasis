@@ -33,3 +33,13 @@ let rect (x0, y0) (x1, y1) c =
   vline y0 y1 x0 c;
   vline y0 y1 x1 c
 ;;
+
+let rectfill (x0, y0) (x1, y1) c =
+  let x0, x1 = (min x0 x1, max x0 x1) in
+  let y0, y1 = (min y0 y1, max y0 y1) in
+  for x = x0 to x1 do
+    for y = y0 to y1 do
+      pset (x, y) c
+    done
+  done
+;;
