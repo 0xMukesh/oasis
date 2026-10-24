@@ -13,7 +13,7 @@ let update_pixels () =
   done
 ;;
 
-let render title ~scale ~update ~draw =
+let render title ~scale ~init ~update ~draw =
   let width = int_of_float (float_of_int Core.w *. scale) in
   let height = int_of_float (float_of_int Core.h *. scale) in
   init_window width height title;
@@ -23,6 +23,8 @@ let render title ~scale ~update ~draw =
   let texture = load_texture_from_image image in
   unload_image image;
   set_texture_filter texture TextureFilter.Point;
+
+  init ();
 
   while not (window_should_close ()) do
     update ();

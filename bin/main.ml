@@ -8,6 +8,7 @@ let () =
   Renderer.render
     "oasis"
     ~scale:2.0
+    ~init:(fun _ -> Lua.call_global vm "_init")
     ~update:(fun _ -> Lua.call_global vm "_update")
     ~draw:(fun _ -> Lua.call_global vm "_draw")
 ;;
