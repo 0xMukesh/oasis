@@ -16,7 +16,7 @@ type t =
   | Lavender
   | Pink
   | Peach
-[@@deriving enum]
+[@@deriving show { with_path = false }, enum]
 
 let palette =
   [| 0x000000

@@ -47,7 +47,7 @@ let l_circ_core ls ~f =
 let l_circ ls = l_circ_core ls ~f:Core.circ
 let l_circ_fill ls = l_circ_core ls ~f:Core.circ_fill
 
-let register_api ls =
+let register_functions ls =
   let api =
     [ ("pset", l_pset)
     ; ("line", l_line)
@@ -65,10 +65,25 @@ let register_api ls =
     api
 ;;
 
+let register_variables ls =
+  let set_int name value =
+    Lua.pushinteger ls value;
+    Lua.setglobal ls name
+  in
+  set_int "W" 256;
+  set_int "H" 256;
+  for i = Core.Color.min to Core.Color.max do
+    let color = Option.get (Core.Color.of_enum i) in
+    let name = String.uppercase_ascii (Core.Color.show color) in
+    set_int name i
+  done
+;;
+
 let create_vm () =
   let ls = LuaL.newstate () in
   LuaL.openlibs ls;
-  register_api ls;
+  register_functions ls;
+  register_variables ls;
   ls
 ;;
 
@@ -76,8 +91,8 @@ let report_err ls =
   match Lua.tostring ls (-1) with
   | Some s ->
     Lua.pop ls 1;
-    prerr_endline ("Lua error: " ^ s)
-  | None -> prerr_endline "Error: Failed to retrieve the error message"
+    failwith ("Lua error: " ^ s)
+  | None -> failwith "Error: Failed to retrieve the error message"
 ;;
 
 let load_cart ls path =

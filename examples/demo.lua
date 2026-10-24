@@ -1,15 +1,13 @@
 local horizon = 200
 local frame = 0
 
-local BLACK, DARK_BLUE, LIGHT_GRAY, WHITE = 0, 1, 6, 7
-
 local stars = {}
 
 function _init()
     math.randomseed(os.time())
     for i = 1, 120 do
         stars[i] = {
-            x  = math.random() * 256,
+            x  = math.random() * W,
             y  = math.random() * horizon,
             ph = math.random() * 2 * math.pi,
         }
@@ -22,7 +20,7 @@ end
 
 function _draw()
     -- the ocean
-    rect_fill(0, horizon, 256 - 1, 256 - 1, DARK_BLUE)
+    rect_fill(0, horizon, W - 1, H - 1, DARK_BLUE)
 
     -- the stars
     local t = frame * 0.05

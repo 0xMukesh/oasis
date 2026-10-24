@@ -39,6 +39,29 @@ let vline y1 y2 x c =
   done
 ;;
 
+let line x0 y0 x1 y1 c =
+  let dx = abs (x1 - x0) in
+  let dy = abs (y1 - y0) in
+  let sx = if x0 < x1 then 1 else -1 in
+  let sy = if y0 < y1 then 1 else -1 in
+  let steep = dy > dx in
+  let major, minor = if steep then (dy, dx) else (dx, dy) in
+  let plot i j =
+    if steep
+    then pset (x0 + (sx * j)) (y0 + (sy * i)) c
+    else pset (x0 + (sx * i)) (y0 + (sy * j)) c
+  in
+  let rec loop i j d =
+    plot i j;
+    if i < major
+    then
+      if d > 0
+      then loop (i + 1) (j + 1) (d + (2 * (minor - major)))
+      else loop (i + 1) j (d + (2 * minor))
+  in
+  loop 0 0 ((2 * minor) - major)
+;;
+
 let rect x0 y0 x1 y1 c =
   let x0, x1 = (min x0 x1, max x0 x1) in
   let y0, y1 = (min y0 y1, max y0 y1) in
@@ -56,25 +79,6 @@ let rect_fill x0 y0 x1 y1 c =
       pset x y c
     done
   done
-;;
-
-let line x0 y0 x1 y1 c =
-  let dx = abs (x1 - x0) in
-  let dy = -abs (y1 - y0) in
-  let sx = if x0 < x1 then 1 else -1 in
-  let sy = if y0 < y1 then 1 else -1 in
-  let rec loop x y err =
-    pset x y c;
-    if x = x1 && y = y1
-    then ()
-    else (
-      let e2 = 2 * err in
-      let x, err = if e2 >= dy then (x + sx, err + dy) else (x, err) in
-      let y, err = if e2 <= dx then (y + sy, err + dx) else (y, err) in
-      loop x y err
-    )
-  in
-  loop x0 y0 (dx + dy)
 ;;
 
 let circ_core xc yc r c ~draw_step =
