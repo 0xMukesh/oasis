@@ -1,6 +1,6 @@
 # oasis
 
-An OCaml based fantasy console made using Raylib with Lua and Common Lisp (coming soon™) as scripting languages.
+An OCaml based fantasy console built with Raylib, with support for Lua and Common Lisp (coming soon™) as scripting languages.
 
 ## References
 
