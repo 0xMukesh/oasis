@@ -20,6 +20,11 @@ let pget x y =
   if is_in_bounds x y then idx |> Bytes.get fb |> Char.code |> Color.of_enum else None
 ;;
 
+let cls c =
+  let b = c |> Color.to_enum |> Char.chr in
+  Bytes.fill fb 0 (Bytes.length fb) b
+;;
+
 let hline x1 x2 y c =
   let x1, x2 = (min x1 x2, max x1 x2) in
   for x = x1 to x2 do
@@ -31,38 +36,6 @@ let vline y1 y2 x c =
   let y1, y2 = (min y1 y2, max y1 y2) in
   for y = y1 to y2 do
     pset x y c
-  done
-;;
-
-(* reference: https://zingl.github.io/bresenham.html *)
-let line x0 y0 x1 y1 c =
-  let dx = abs (x1 - x0) in
-  let dy = -abs (y1 - y0) in
-  let sx = if x0 < x1 then 1 else -1 in
-  let sy = if y0 < y1 then 1 else -1 in
-  let err = ref (dx + dy) in
-  let x = ref x0 in
-  let y = ref y0 in
-  let running = ref true in
-  while !running do
-    pset !x !y c;
-    let e2 = 2 * !err in
-    if e2 >= dy
-    then
-      if !x = x1
-      then running := false
-      else (
-        err := !err + dy;
-        x := !x + sx
-      );
-    if !running && e2 <= dx
-    then
-      if !y = y1
-      then running := false
-      else (
-        err := !err + dx;
-        y := !y + sy
-      )
   done
 ;;
 
@@ -85,30 +58,52 @@ let rect_fill x0 y0 x1 y1 c =
   done
 ;;
 
-(* reference: https://zingl.github.io/bresenham.html *)
-let circ_core xc yc r c ~draw_step =
-  let x = ref (-r) in
-  let y = ref 0 in
-  let err = ref (2 - (2 * r)) in
-  let e2 = ref 0 in
-  let first = ref true in
-
-  while !first || !x < 0 do
-    first := false;
-    draw_step xc yc !x !y c;
-
-    e2 := !err;
-    if !e2 <= !y
-    then (
-      incr y;
-      err := !err + (!y * 2) + 1
-    );
-    if !e2 > !x || !err > !y
-    then (
-      incr x;
-      err := !err + (!x * 2) + 1
+let line x0 y0 x1 y1 c =
+  let dx = abs (x1 - x0) in
+  let dy = -abs (y1 - y0) in
+  let sx = if x0 < x1 then 1 else -1 in
+  let sy = if y0 < y1 then 1 else -1 in
+  let rec loop x y err =
+    pset x y c;
+    if x = x1 && y = y1
+    then ()
+    else (
+      let e2 = 2 * err in
+      let x, err = if e2 >= dy then (x + sx, err + dy) else (x, err) in
+      let y, err = if e2 <= dx then (y + sy, err + dx) else (y, err) in
+      loop x y err
     )
-  done
+  in
+  loop x0 y0 (dx + dy)
+;;
+
+let circ_core xc yc r c ~draw_step =
+  let rec loop x y err =
+    if x >= 0
+    then ()
+    else (
+      draw_step xc yc x y c;
+      let e2 = err in
+      let y, err =
+        if e2 <= y
+        then (
+          let y = y + 1 in
+          (y, err + (y * 2) + 1)
+        )
+        else (y, err)
+      in
+      let x, err =
+        if e2 > x || err > y
+        then (
+          let x = x + 1 in
+          (x, err + (x * 2) + 1)
+        )
+        else (x, err)
+      in
+      loop x y err
+    )
+  in
+  loop (-r) 0 (2 - (2 * r))
 ;;
 
 let circ_draw_outline xc yc x y c =
@@ -129,5 +124,5 @@ let circ_draw_filled xc yc x y c =
   hline (xc - y) (xc + y) (yc - x) c
 ;;
 
-let circ xc yc r c = circ_core xc yc r c ~draw_step:circ_draw_filled
+let circ xc yc r c = circ_core xc yc r c ~draw_step:circ_draw_outline
 let circ_fill xc yc r c = circ_core xc yc r c ~draw_step:circ_draw_filled

@@ -16,8 +16,10 @@ let stars =
 
 let update () =
   incr frame;
+
   (* the ocean *)
   rect_fill 0 horizon (w - 1) (h - 1) Color.Dark_blue;
+
   let t = float_of_int !frame *. 0.05 in
   (* the stars *)
   Array.iter
@@ -26,6 +28,7 @@ let update () =
        pset (int_of_float x) (int_of_float y) c
      )
     stars;
+
   (* kinda like a moon? *)
   circ_fill 220 40 30 Color.Light_gray
 ;;
