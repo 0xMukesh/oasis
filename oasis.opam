@@ -14,8 +14,9 @@ depends: [
   "ocaml"
   "ocaml-lsp-server"
   "ocamlformat"
-  "raylib"
   "ppx_deriving"
+  "raylib"
+  "ocaml-lua"
   "odoc" {with-doc}
 ]
 build: [

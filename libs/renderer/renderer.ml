@@ -13,7 +13,7 @@ let update_pixels () =
   done
 ;;
 
-let render title ~scale ~update =
+let render title ~scale ~update ~draw =
   let width = int_of_float (float_of_int Core.w *. scale) in
   let height = int_of_float (float_of_int Core.h *. scale) in
   init_window width height title;
@@ -26,11 +26,14 @@ let render title ~scale ~update =
 
   while not (window_should_close ()) do
     update ();
-    update_pixels ();
-    update_texture texture (Ctypes.to_voidp (CArray.start pixels));
 
     begin_drawing ();
     clear_background Color.black;
+
+    draw ();
+    update_pixels ();
+
+    update_texture texture (Ctypes.to_voidp (CArray.start pixels));
     draw_texture_ex texture (Vector2.create 0. 0.) 0. scale Color.white;
     end_drawing ()
   done;

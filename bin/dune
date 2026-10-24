@@ -3,4 +3,5 @@
  (name main)
  (libraries
   core
-  renderer))
+  renderer
+  lua))

@@ -1,0 +1,3 @@
+(library
+  (name lua)
+  (libraries core ocaml-lua))

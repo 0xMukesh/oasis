@@ -1,1 +1,1 @@
-val render : string -> scale:float -> update:(unit -> unit) -> unit
+val render : string -> scale:float -> update:(unit -> unit) -> draw:(unit -> unit) -> unit

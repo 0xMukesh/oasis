@@ -23,7 +23,8 @@
   ocaml
   ocaml-lsp-server
   ocamlformat
+  ppx_deriving
   raylib
-  ppx_deriving)
+  ocaml-lua)
  (tags
   ("fantasy-console" "raylib")))
