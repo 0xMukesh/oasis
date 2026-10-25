@@ -18,7 +18,7 @@ type t =
   | Peach
 [@@deriving show { with_path = false }, enum]
 
-let default = White
+let default = Black
 
 let palette =
   [| 0x000000

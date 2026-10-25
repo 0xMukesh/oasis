@@ -4,12 +4,11 @@ local frame = 0
 local stars = {}
 
 function _init()
-    math.randomseed(os.time())
     for i = 1, 120 do
         stars[i] = {
-            x  = math.random() * W,
-            y  = math.random() * horizon,
-            ph = math.random() * 2 * math.pi,
+            x  = rnd() * W,
+            y  = rnd() * horizon,
+            ph = rnd() * 2 * PI,
         }
     end
 end
@@ -24,9 +23,10 @@ function _draw()
 
     -- the stars
     local t = frame * 0.05
-    for _, s in ipairs(stars) do
-        local c = math.sin(t + s.ph) > 0 and WHITE or BLACK
-        pset(math.floor(s.x), math.floor(s.y), c)
+    for i = 1, #stars do
+        local s = stars[i]
+        local c = sin(t + s.ph) > 0 and WHITE or BLACK
+        pset(floor(s.x), floor(s.y), c)
     end
 
     -- kinda like a moon?

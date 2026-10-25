@@ -1,33 +1,76 @@
 open Lua_api
+open Core
 
 type t = Lua_api_lib.state
 
-let color = ref (Core.Color.to_enum Core.Color.default)
+let curr_color = ref (Core.Color.to_enum Core.Color.default)
 let callbacks = [ "_init"; "_update"; "_draw" ]
-let num ls i = LuaL.checknumber ls i
-let int_ ls i = num ls i |> int_of_float
 
-let color_ ls i =
-  let n = LuaL.optint ls i !color in
+(* -- UTILITY FUNCTIONS -- *)
+let num ls i = LuaL.checknumber ls i
+let int ls i = num ls i |> int_of_float
+
+type 'a number_ops =
+  { read : Lua_api_lib.state -> int -> 'a
+  ; push : Lua_api_lib.state -> 'a -> unit
+  }
+
+let lua_int_ops : int number_ops = { read = int; push = Lua.pushinteger }
+let lua_float_ops : float number_ops = { read = num; push = Lua.pushnumber }
+
+let color ls i =
+  let n = LuaL.optint ls i !curr_color in
   match Core.Color.of_enum n with
   | Some c -> c
   | None -> LuaL.argerror ls i (Printf.sprintf "invalid color index: %d" n)
 ;;
 
+let list ls i =
+  let n = Lua.objlen ls i in
+  List.init n (fun j ->
+    Lua.rawgeti ls i (j + 1);
+    let value = Lua.tonumber ls (-1) in
+    Lua.pop ls 1;
+    value
+  )
+;;
+
+let unary ops f ls =
+  let x = ops.read ls 1 in
+  ops.push ls (f x);
+  1
+;;
+
+let binary ops f ls =
+  let x = ops.read ls 1 in
+  let y = ops.read ls 2 in
+  ops.push ls (f x y);
+  1
+;;
+
+let ternary ops f ls =
+  let x = ops.read ls 1 in
+  let y = ops.read ls 2 in
+  let z = ops.read ls 3 in
+  ops.push ls (f x y z);
+  1
+;;
+
 let l_noop _ = 0
 
+(* -- GRAPHICS -- *)
 (* pset x y c *)
 let l_pset ls =
-  let x, y = (int_ ls 1, int_ ls 2) in
-  let c = color_ ls 3 in
-  Core.pset x y c;
+  let x, y = (int ls 1, int ls 2) in
+  let c = color ls 3 in
+  Graphics.pset x y c;
   0
 ;;
 
 (* pget x y : c *)
 let l_pget ls =
-  let x, y = (int_ ls 1, int_ ls 2) in
-  let c = Core.pget x y in
+  let x, y = (int ls 1, int ls 2) in
+  let c = Graphics.pget x y in
   let result =
     match c with
     | Some v -> Core.Color.to_enum v
@@ -39,17 +82,17 @@ let l_pget ls =
 
 (* cls c *)
 let l_cls ls =
-  let c = color_ ls 1 in
-  Core.cls c;
+  let c = color ls 1 in
+  Graphics.cls c;
   0
 ;;
 
 (* color c *)
 let l_color ls =
   let arg_index = 1 in
-  let c = int_ ls arg_index in
-  ( match Core.Color.of_enum c with
-    | Some _ -> color := c
+  let c = int ls arg_index in
+  ( match Color.of_enum c with
+    | Some _ -> curr_color := c
     | None ->
       LuaL.argerror ls arg_index (Printf.sprintf "invalid color index: %d" arg_index)
   );
@@ -58,39 +101,86 @@ let l_color ls =
 
 (* line x0 y0 x1 y1 c *)
 let l_line ls =
-  let x0, y0 = (int_ ls 1, int_ ls 2) in
-  let x1, y1 = (int_ ls 3, int_ ls 4) in
-  let c = color_ ls 5 in
-  Core.line x0 y0 x1 y1 c;
+  let x0, y0 = (int ls 1, int ls 2) in
+  let x1, y1 = (int ls 3, int ls 4) in
+  let c = color ls 5 in
+  Graphics.line x0 y0 x1 y1 c;
   0
 ;;
 
 (* rect x0 y0 x1 y1 c *)
 (* rect_fill x0 y0 x1 y1 c *)
 let l_rect_core ls ~f =
-  let x0, y0 = (int_ ls 1, int_ ls 2) in
-  let x1, y1 = (int_ ls 3, int_ ls 4) in
-  let c = color_ ls 5 in
+  let x0, y0 = (int ls 1, int ls 2) in
+  let x1, y1 = (int ls 3, int ls 4) in
+  let c = color ls 5 in
   f x0 y0 x1 y1 c;
   0
 ;;
 
-let l_rect ls = l_rect_core ls ~f:Core.rect
-let l_rect_fill ls = l_rect_core ls ~f:Core.rect_fill
+let l_rect ls = l_rect_core ls ~f:Graphics.rect
+let l_rect_fill ls = l_rect_core ls ~f:Graphics.rect_fill
 
 (* circ x y r c *)
 (* circ_fill x y r c *)
 let l_circ_core ls ~f =
-  let x, y = (int_ ls 1, int_ ls 2) in
-  let r = int_ ls 3 in
-  let c = color_ ls 4 in
+  let x, y = (int ls 1, int ls 2) in
+  let r = int ls 3 in
+  let c = color ls 4 in
   f x y r c;
   0
 ;;
 
-let l_circ ls = l_circ_core ls ~f:Core.circ
-let l_circ_fill ls = l_circ_core ls ~f:Core.circ_fill
+let l_circ ls = l_circ_core ls ~f:Graphics.circ
+let l_circ_fill ls = l_circ_core ls ~f:Graphics.circ_fill
 
+(* -- MATH -- *)
+let l_min ls = binary lua_float_ops Math.min ls
+let l_max ls = binary lua_float_ops Math.max ls
+let l_mid ls = ternary lua_float_ops Math.mid ls
+let l_abs ls = unary lua_float_ops Math.abs ls
+let l_floor ls = unary lua_float_ops Math.floor ls
+let l_ceil ls = unary lua_float_ops Math.ceil ls
+let l_sin ls = unary lua_float_ops Math.sin ls
+let l_cos ls = unary lua_float_ops Math.cos ls
+let l_atan2 ls = binary lua_float_ops Math.atan2 ls
+
+let l_rnd ls =
+  if Lua.gettop ls = 0
+  then (
+    Lua.pushnumber ls (Math.rnd 1.0);
+    1
+  )
+  else if Lua.isnumber ls (-1)
+  then unary lua_float_ops Math.rnd ls
+  else if Lua.istable ls (-1)
+  then (
+    let l = list ls 1 in
+    let result = Math.rnd_list l in
+    Lua.pushnumber ls result;
+    1
+  )
+  else LuaL.argerror ls 1 "Argument can be either a number or table"
+;;
+
+let l_srnd ls =
+  let seed = int ls 1 in
+  Math.srnd seed;
+  0
+;;
+
+let l_sqrt ls = unary lua_float_ops Math.sqrt ls
+let l_sgn ls = unary lua_float_ops Math.sgn ls
+let l_band ls = binary lua_int_ops Math.band ls
+let l_bor ls = binary lua_int_ops Math.bor ls
+let l_bxor ls = binary lua_int_ops Math.bxor ls
+let l_shl ls = binary lua_int_ops Math.shl ls
+let l_lshr ls = binary lua_int_ops Math.lshr ls
+let l_ashr ls = binary lua_int_ops Math.ashr ls
+let l_rotl ls = binary lua_int_ops Math.rotl ls
+let l_rotr ls = binary lua_int_ops Math.rotr ls
+
+(* -- CORE FUNCTIONS -- *)
 let register_functions ls =
   let functions =
     [ ("pset", l_pset)
@@ -102,6 +192,27 @@ let register_functions ls =
     ; ("rect_fill", l_rect_fill)
     ; ("circ", l_circ)
     ; ("circ_fill", l_circ_fill)
+    ; ("min", l_min)
+    ; ("max", l_max)
+    ; ("mid", l_mid)
+    ; ("abs", l_abs)
+    ; ("floor", l_floor)
+    ; ("ceil", l_ceil)
+    ; ("sin", l_sin)
+    ; ("cos", l_cos)
+    ; ("atan2", l_atan2)
+    ; ("rnd", l_rnd)
+    ; ("srnd", l_srnd)
+    ; ("sqrt", l_sqrt)
+    ; ("sgn", l_sgn)
+    ; ("band", l_band)
+    ; ("bor", l_bor)
+    ; ("bxor", l_bxor)
+    ; ("shl", l_shl)
+    ; ("lshr", l_lshr)
+    ; ("ashr", l_ashr)
+    ; ("rotl", l_rotl)
+    ; ("rotr", l_rotr)
     ]
   in
   List.iter (fun (name, f) -> Lua.register ls name f) functions
@@ -112,8 +223,13 @@ let register_variables ls =
     Lua.pushinteger ls value;
     Lua.setglobal ls name
   in
-  set_int "W" Core.w;
-  set_int "H" Core.h;
+  let set_float name value =
+    Lua.pushnumber ls value;
+    Lua.setglobal ls name
+  in
+  set_int "W" Graphics.w;
+  set_int "H" Graphics.h;
+  set_float "PI" Float.pi;
   for i = Core.Color.min to Core.Color.max do
     let color = Option.get @@ Core.Color.of_enum i in
     let name = String.uppercase_ascii @@ Core.Color.show color in
@@ -123,7 +239,6 @@ let register_variables ls =
 
 let create_vm () =
   let ls = LuaL.newstate () in
-  LuaL.openlibs ls;
   register_functions ls;
   register_variables ls;
   ls
