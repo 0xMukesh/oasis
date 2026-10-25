@@ -13,7 +13,11 @@ let update_pixels () =
   done
 ;;
 
-let render title ~scale ~init ~update ~draw =
+let render title ~scale ~runtime ~cart =
+  let module R = (val runtime : Runtime.Runtime) in
+  let vm = R.create_vm () in
+  R.load_cart vm cart;
+
   let width = int_of_float (float_of_int Core.w *. scale) in
   let height = int_of_float (float_of_int Core.h *. scale) in
   init_window width height title;
@@ -24,15 +28,15 @@ let render title ~scale ~init ~update ~draw =
   unload_image image;
   set_texture_filter texture TextureFilter.Point;
 
-  init ();
+  R.call_init vm;
 
   while not (window_should_close ()) do
-    update ();
+    R.call_update vm;
 
     begin_drawing ();
     clear_background Color.black;
 
-    draw ();
+    R.call_draw vm;
     update_pixels ();
 
     update_texture texture (Ctypes.to_voidp (CArray.start pixels));

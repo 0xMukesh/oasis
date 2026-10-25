@@ -4,4 +4,4 @@
  (libraries
   core
   renderer
-  lua))
+  runtime))

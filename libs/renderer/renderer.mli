@@ -1,7 +1,6 @@
 val render
   :  string
   -> scale:float
-  -> init:(unit -> unit)
-  -> update:(unit -> unit)
-  -> draw:(unit -> unit)
+  -> runtime:(module Runtime.Runtime)
+  -> cart:string
   -> unit

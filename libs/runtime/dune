@@ -1,0 +1,4 @@
+(library
+  (name runtime)
+  (libraries core ocaml-lua)
+  (modules_without_implementation runtime_intf))
