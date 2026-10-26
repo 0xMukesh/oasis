@@ -3,11 +3,40 @@ open Core
 
 type t = Lua_api_lib.state
 
+exception Lua_error of string
+
 let curr_color = ref (Core.Color.to_enum Core.Color.default)
 let callbacks = [ "_init"; "_update"; "_draw" ]
 
 (* -- UTILITY FUNCTIONS -- *)
-let num ls i = LuaL.checknumber ls i
+(*
+  NOTE: I was facing some weird issue while trying to directly use `LuaL.argerror` and similar functions which was leading to SIGSEGV so initially implementing the error handling on OCaml side.
+*)
+let where_prefix ls level =
+  LuaL.where ls level;
+  let s =
+    match Lua.tostring ls (-1) with
+    | Some s -> s
+    | None -> ""
+  in
+  Lua.pop ls 1;
+  s
+;;
+
+let arg_error ls i msg =
+  let pos = where_prefix ls 1 in
+  raise (Lua_error (Printf.sprintf "%sbad argument #%d: %s" pos i msg))
+;;
+
+let num ls i =
+  if Lua.isnumber ls i
+  then Lua.tonumber ls i
+  else (
+    let got = Lua.typename ls (Lua.type_ ls i) in
+    arg_error ls i (Printf.sprintf "number expected, got %s" got)
+  )
+;;
+
 let int ls i = num ls i |> int_of_float
 
 type 'a number_ops =
@@ -22,7 +51,7 @@ let color ls i =
   let n = LuaL.optint ls i !curr_color in
   match Core.Color.of_enum n with
   | Some c -> c
-  | None -> LuaL.argerror ls i (Printf.sprintf "invalid color index: %d" n)
+  | None -> arg_error ls i (Printf.sprintf "invalid color index: %d" n)
 ;;
 
 let list ls i =
@@ -93,8 +122,7 @@ let l_color ls =
   let c = int ls arg_index in
   ( match Color.of_enum c with
     | Some _ -> curr_color := c
-    | None ->
-      LuaL.argerror ls arg_index (Printf.sprintf "invalid color index: %d" arg_index)
+    | None -> arg_error ls arg_index (Printf.sprintf "invalid color index: %d" c)
   );
   0
 ;;
@@ -160,7 +188,7 @@ let l_rnd ls =
     Lua.pushnumber ls result;
     1
   )
-  else LuaL.argerror ls 1 "Argument can be either a number or table"
+  else arg_error ls 1 "argument can be either a number or table"
 ;;
 
 let l_srnd ls =
@@ -247,11 +275,11 @@ let create_vm () =
 let report_err ls =
   let message =
     match Lua.tostring ls (-1) with
-    | Some s -> "Lua error: " ^ s
-    | None -> "Lua error: failed to retrieve the error message"
+    | Some s -> s
+    | None -> "failed to retrieve the error message"
   in
   Lua.pop ls 1;
-  failwith message
+  raise (Lua_error message)
 ;;
 
 let exec_func ls name =
