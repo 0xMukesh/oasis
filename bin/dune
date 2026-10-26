@@ -1,7 +1,4 @@
 (executable
  (public_name oasis)
  (name main)
- (libraries
-  core
-  renderer
-  runtime))
+ (libraries core renderer runtime))
