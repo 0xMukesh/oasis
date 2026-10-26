@@ -3,7 +3,7 @@ local frame = 0
 
 local stars = {}
 
-function _init()
+function Init()
     for i = 1, 120 do
         stars[i] = {
             x  = rnd() * W,
@@ -13,11 +13,11 @@ function _init()
     end
 end
 
-function _update()
+function Update()
     frame = frame + 1
 end
 
-function _draw()
+function Draw()
     -- the ocean
     rect_fill(0, horizon, W - 1, H - 1, DARK_BLUE)
 

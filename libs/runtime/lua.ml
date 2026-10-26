@@ -6,7 +6,7 @@ type t = Lua_api_lib.state
 exception Lua_error of string
 
 let curr_color = ref (Core.Color.to_enum Core.Color.default)
-let callbacks = [ "_init"; "_update"; "_draw" ]
+let init, update, draw = ("Init", "Update", "Draw")
 
 (* -- UTILITY FUNCTIONS -- *)
 (*
@@ -305,9 +305,9 @@ let load_cart ls path =
     | Lua.LUA_OK -> exec_func ls None
     | _ -> report_err ls
   );
-  List.iter (ensure_callback ls) callbacks
+  List.iter (ensure_callback ls) [ init; update; draw ]
 ;;
 
-let call_init ls = exec_func ls (Some "_init")
-let call_update ls = exec_func ls (Some "_update")
-let call_draw ls = exec_func ls (Some "_draw")
+let call_init ls = exec_func ls (Some init)
+let call_update ls = exec_func ls (Some update)
+let call_draw ls = exec_func ls (Some draw)

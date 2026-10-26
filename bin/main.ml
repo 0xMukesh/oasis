@@ -5,7 +5,12 @@ type command =
   }
 
 let commands : command list =
-  [ { name = "run"; description = "Execute an oasis cartridge"; run = Commands.run_cmd } ]
+  [ { name = "run"; description = "Execute an oasis cartridge"; run = Commands.run_cmd }
+  ; { name = "gen-lua-defs"
+    ; description = "Generate Lua definitions"
+    ; run = Commands.gen_lua_defs_cmd
+    }
+  ]
 ;;
 
 let usage_msg =
