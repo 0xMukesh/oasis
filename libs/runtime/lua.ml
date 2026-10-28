@@ -10,7 +10,8 @@ let init, update, draw = ("Init", "Update", "Draw")
 
 (* -- UTILITY FUNCTIONS -- *)
 (*
-  NOTE: I was facing some weird issue while trying to directly use `LuaL.argerror` and similar functions which was leading to SIGSEGV so initially implementing the error handling on OCaml side.
+  NOTE: I was facing some weird issue while trying to directly use `LuaL.argerror` and similar functions for throwing the exceptions from OCaml side
+  where instead of the descriptive error message, it was just SIGSEGV, so instead I've implemented the error handling part on OCaml side using exceptions.
 *)
 let where_prefix ls level =
   LuaL.where ls level;
