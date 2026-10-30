@@ -103,6 +103,12 @@ let l_fillp ls =
   0
 ;;
 
+let l_set_fps ls =
+  let fps = read_int ls 1 in
+  Graphics.set_fps fps;
+  0
+;;
+
 (* -- GRAPHICS -- *)
 (* cls [c] *)
 let l_cls ls =
@@ -221,6 +227,7 @@ let register_functions ls =
   let functions =
     [ ("color", l_color)
     ; ("fillp", l_fillp)
+    ; ("set_fps", l_set_fps)
     ; ("pset", l_pset)
     ; ("pget", l_pget)
     ; ("cls", l_cls)

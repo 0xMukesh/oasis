@@ -31,6 +31,9 @@ function color(color) end
 --- @param transparent? boolean
 function fillp(pattern, transparent) end
 
+--- @param fps integer
+function set_fps(fps) end
+
 -- GRAPHICS --
 --- @param x integer
 --- @param y integer
@@ -175,5 +178,6 @@ function rotl(x, y) end
 --- @return integer
 function rotr(x, y) end
 
+-- UTILITIES --
 --- @return integer
 function time() end

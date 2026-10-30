@@ -29,6 +29,7 @@ end
 
 function Init()
     srnd(time())
+    set_fps(15)
 
     for i = 1, rows do
         cells[i] = {}

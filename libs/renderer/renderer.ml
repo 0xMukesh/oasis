@@ -23,7 +23,6 @@ let render title ~scale ~runtime ~cart =
   let width = int_of_float (float_of_int Graphics.w *. scale) in
   let height = int_of_float (float_of_int Graphics.h *. scale) in
   init_window width height title;
-  set_target_fps 60;
 
   let image = gen_image_color Graphics.w Graphics.h RLColor.black in
   let texture = load_texture_from_image image in
@@ -31,9 +30,17 @@ let render title ~scale ~runtime ~cart =
   set_texture_filter texture TextureFilter.Point;
 
   R.call_init vm;
+  let applied_fps = ref 0 in
 
   while not (window_should_close ()) do
     R.call_update vm;
+
+    let requested_fps = !Graphics.fps in
+    if requested_fps <> !applied_fps
+    then (
+      set_target_fps requested_fps;
+      applied_fps := requested_fps
+    );
 
     begin_drawing ();
     clear_background RLColor.black;

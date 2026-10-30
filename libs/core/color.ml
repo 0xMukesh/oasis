@@ -19,8 +19,8 @@ type t =
 [@@deriving show { with_path = false }, enum]
 
 type packed_color =
-  { mutable primary : t
-  ; mutable secondary : t
+  { mutable primary : t (* used for drawing off bits *)
+  ; mutable secondary : t (* used for drawing on bits *)
   }
 [@@deriving show, make]
 

@@ -2,6 +2,7 @@
 val w : int
 val h : int
 val fb : bytes
+val fps : int ref
 
 (* -- DRAW STATE -- *)
 val pen_color : Color.packed_color
@@ -9,6 +10,7 @@ val pen_color : Color.packed_color
 (* -- DRAW STATE MODIFIERS -- *)
 val set_color : Color.t -> Color.t -> unit
 val set_fill_pattern : int -> bool -> unit
+val set_fps : int -> unit
 
 (* -- GRAPHIC FUNCTIONS -- *)
 val cls : Color.t -> unit
