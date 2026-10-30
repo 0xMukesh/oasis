@@ -5,7 +5,6 @@ type t = Lua_api_lib.state
 
 exception Lua_error of string
 
-let curr_color = ref (Core.Color.to_enum Core.Color.default)
 let init, update, draw = ("Init", "Update", "Draw")
 
 (* -- UTILITY FUNCTIONS -- *)
@@ -13,6 +12,9 @@ let init, update, draw = ("Init", "Update", "Draw")
   NOTE: I was facing some weird issue while trying to directly use `LuaL.argerror` and similar functions for throwing the exceptions from OCaml side
   where instead of the descriptive error message, it was just SIGSEGV, so instead I've implemented the error handling part on OCaml side using exceptions.
 *)
+let to_lua_color c = Color.to_enum c + 1
+let of_lua_color lc = Color.of_enum (lc - 1)
+
 let where_prefix ls level =
   LuaL.where ls level;
   let s =
@@ -49,10 +51,11 @@ let lua_int_ops : int number_ops = { read = int; push = Lua.pushinteger }
 let lua_float_ops : float number_ops = { read = num; push = Lua.pushnumber }
 
 let color ls i =
-  let n = LuaL.optint ls i !curr_color in
-  match Core.Color.of_enum n with
+  let pen_color = to_lua_color !Core.Graphics.pen_color in
+  let lc = LuaL.optint ls i pen_color in
+  match of_lua_color lc with
   | Some c -> c
-  | None -> arg_error ls i (Printf.sprintf "invalid color index: %d" n)
+  | None -> arg_error ls i (Printf.sprintf "invalid color index: %d" lc)
 ;;
 
 let list ls i =
@@ -89,7 +92,25 @@ let ternary ops f ls =
 let l_noop _ = 0
 
 (* -- GRAPHICS -- *)
-(* pset x y c *)
+(* color c *)
+let l_color ls =
+  let arg_index = 1 in
+  let lc = int ls arg_index in
+  ( match of_lua_color lc with
+    | Some c -> Graphics.color c
+    | None -> arg_error ls arg_index (Printf.sprintf "invalid color index: %d" lc)
+  );
+  0
+;;
+
+(* cls [c] *)
+let l_cls ls =
+  let c = color ls 1 in
+  Graphics.cls c;
+  0
+;;
+
+(* pset x y [c] *)
 let l_pset ls =
   let x, y = (int ls 1, int ls 2) in
   let c = color ls 3 in
@@ -110,25 +131,7 @@ let l_pget ls =
   1
 ;;
 
-(* cls c *)
-let l_cls ls =
-  let c = color ls 1 in
-  Graphics.cls c;
-  0
-;;
-
-(* color c *)
-let l_color ls =
-  let arg_index = 1 in
-  let c = int ls arg_index in
-  ( match Color.of_enum c with
-    | Some _ -> curr_color := c
-    | None -> arg_error ls arg_index (Printf.sprintf "invalid color index: %d" c)
-  );
-  0
-;;
-
-(* line x0 y0 x1 y1 c *)
+(* line x0 y0 x1 y1 [c] *)
 let l_line ls =
   let x0, y0 = (int ls 1, int ls 2) in
   let x1, y1 = (int ls 3, int ls 4) in
@@ -137,8 +140,8 @@ let l_line ls =
   0
 ;;
 
-(* rect x0 y0 x1 y1 c *)
-(* rect_fill x0 y0 x1 y1 c *)
+(* rect x0 y0 x1 y1 [c] *)
+(* rect_fill x0 y0 x1 y1 [c] *)
 let l_rect_core ls ~f =
   let x0, y0 = (int ls 1, int ls 2) in
   let x1, y1 = (int ls 3, int ls 4) in
@@ -150,8 +153,8 @@ let l_rect_core ls ~f =
 let l_rect ls = l_rect_core ls ~f:Graphics.rect
 let l_rect_fill ls = l_rect_core ls ~f:Graphics.rect_fill
 
-(* circ x y r c *)
-(* circ_fill x y r c *)
+(* circ x y r [c] *)
+(* circ_fill x y r [c] *)
 let l_circ_core ls ~f =
   let x, y = (int ls 1, int ls 2) in
   let r = int ls 3 in
@@ -262,7 +265,7 @@ let register_variables ls =
   for i = Core.Color.min to Core.Color.max do
     let color = Option.get @@ Core.Color.of_enum i in
     let name = String.uppercase_ascii @@ Core.Color.show color in
-    set_int name i
+    set_int name (i + 1)
   done
 ;;
 

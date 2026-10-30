@@ -3,6 +3,17 @@ let fb = Bytes.make (w * h) '\000'
 let is_in_bounds x y = (x >= 0 && x < w) && y >= 0 && y < h
 let fb_idx_of_coords x y = (y * w) + x
 
+(* DRAW STATE *)
+let pen_color = ref Color.Black
+
+(* GRAPHICS *)
+let color c = pen_color := c
+
+let cls c =
+  let b = c |> Color.to_enum |> Char.chr in
+  Bytes.fill fb 0 (Bytes.length fb) b
+;;
+
 let pset x y c =
   let enum = Color.to_enum c in
   let idx = (y * w) + x in
@@ -13,11 +24,6 @@ let pset x y c =
 let pget x y =
   let idx = fb_idx_of_coords x y in
   if is_in_bounds x y then idx |> Bytes.get fb |> Char.code |> Color.of_enum else None
-;;
-
-let cls c =
-  let b = c |> Color.to_enum |> Char.chr in
-  Bytes.fill fb 0 (Bytes.length fb) b
 ;;
 
 let hline x1 x2 y c =

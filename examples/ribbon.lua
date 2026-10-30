@@ -5,7 +5,7 @@
 local elapsed_time = 0
 
 function Update()
-    elapsed_time = elapsed_time + 1 / 60
+    elapsed_time = elapsed_time + 5 / 60
 end
 
 local function double_line(x0, y0, x1, y1, c)
@@ -31,7 +31,7 @@ local function draw_ribbon(t, y_offset, phase_offset, color_shift)
 end
 
 function Draw()
-    cls(DARK_BLUE)
+    cls(BLUE)
 
     draw_ribbon(elapsed_time, 0, 0, 0)
     draw_ribbon(elapsed_time, 72, 0.5, 2)
