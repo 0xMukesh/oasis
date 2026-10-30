@@ -97,8 +97,8 @@ let l_color ls =
 
 (* fillp p [t] *)
 let l_fillp ls =
-  let p = read_int ls 1 in
-  let t = if Lua.gettop ls = 1 then false else read_bool ls 2 in
+  let p = if Lua.gettop ls >= 1 then read_int ls 1 else 0 in
+  let t = if Lua.gettop ls = 2 then read_bool ls 2 else false in
   Graphics.set_fill_pattern p t;
   0
 ;;
@@ -210,6 +210,12 @@ let l_ashr ls = binary lua_int_ops Math.ashr ls
 let l_rotl ls = binary lua_int_ops Math.rotl ls
 let l_rotr ls = binary lua_int_ops Math.rotr ls
 
+let l_time ls =
+  let time = Math.time () in
+  Lua.pushnumber ls time;
+  1
+;;
+
 (* -- CORE FUNCTIONS -- *)
 let register_functions ls =
   let functions =
@@ -244,6 +250,7 @@ let register_functions ls =
     ; ("ashr", l_ashr)
     ; ("rotl", l_rotl)
     ; ("rotr", l_rotr)
+    ; ("time", l_time)
     ]
   in
   List.iter (fun (name, f) -> Lua.register ls name f) functions

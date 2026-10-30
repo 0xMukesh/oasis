@@ -1,3 +1,5 @@
+-- inspo: https://www.lexaloffle.com/bbs/?pid=194045
+
 local elapsed_time = 0
 
 local ramps = {

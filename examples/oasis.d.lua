@@ -27,7 +27,7 @@ PEACH = 15
 --- @param color integer
 function color(color) end
 
---- @param pattern integer
+--- @param pattern? integer
 --- @param transparent? boolean
 function fillp(pattern, transparent) end
 
@@ -174,3 +174,6 @@ function rotl(x, y) end
 --- @param y integer
 --- @return integer
 function rotr(x, y) end
+
+--- @return integer
+function time() end
