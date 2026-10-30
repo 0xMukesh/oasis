@@ -23,6 +23,14 @@ LAVENDER = 13
 PINK = 14
 PEACH = 15
 
+-- DRAW STATE --
+--- @param color integer
+function color(color) end
+
+--- @param pattern integer
+--- @param transparent? boolean
+function fillp(pattern, transparent) end
+
 -- GRAPHICS --
 --- @param x integer
 --- @param y integer
@@ -36,9 +44,6 @@ function pget(x, y) end
 
 --- @param color? integer
 function cls(color) end
-
---- @param color integer
-function color(color) end
 
 --- @param x0 integer
 --- @param y0 integer

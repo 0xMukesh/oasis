@@ -18,6 +18,12 @@ type t =
   | Peach
 [@@deriving show { with_path = false }, enum]
 
+type packed_color =
+  { mutable primary : t
+  ; mutable secondary : t
+  }
+[@@deriving show, make]
+
 let default = Black
 
 let palette =
@@ -38,4 +44,19 @@ let palette =
    ; 0xFF77A8
    ; 0xFFCCAA
   |]
+;;
+
+let packed_color_of_int i =
+  let c = i land 0xff in
+  let lower = c land 0x0f in
+  let upper = (c lsr 4) land 0x0f in
+  make_packed_color
+    ~primary:(Option.get @@ of_enum lower)
+    ~secondary:(Option.get @@ of_enum upper)
+;;
+
+let int_of_packed_color pc =
+  let lower = to_enum pc.primary in
+  let upper = to_enum pc.secondary in
+  (upper lsr 4) lor lower
 ;;

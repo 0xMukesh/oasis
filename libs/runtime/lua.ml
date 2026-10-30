@@ -8,13 +8,6 @@ exception Lua_error of string
 let init, update, draw = ("Init", "Update", "Draw")
 
 (* -- UTILITY FUNCTIONS -- *)
-(*
-  NOTE: I was facing some weird issue while trying to directly use `LuaL.argerror` and similar functions for throwing the exceptions from OCaml side
-  where instead of the descriptive error message, it was just SIGSEGV, so instead I've implemented the error handling part on OCaml side using exceptions.
-*)
-let to_lua_color c = Color.to_enum c + 1
-let of_lua_color lc = Color.of_enum (lc - 1)
-
 let where_prefix ls level =
   LuaL.where ls level;
   let s =
@@ -31,34 +24,29 @@ let arg_error ls i msg =
   raise (Lua_error (Printf.sprintf "%sbad argument #%d: %s" pos i msg))
 ;;
 
-let num ls i =
+let got ls i = Lua.typename ls (Lua.type_ ls i)
+
+let read_num ls i =
   if Lua.isnumber ls i
   then Lua.tonumber ls i
-  else (
-    let got = Lua.typename ls (Lua.type_ ls i) in
-    arg_error ls i (Printf.sprintf "number expected, got %s" got)
-  )
+  else arg_error ls i (Printf.sprintf "number expected, got %s" (got ls i))
 ;;
 
-let int ls i = num ls i |> int_of_float
+let read_int ls i = read_num ls i |> int_of_float
 
-type 'a number_ops =
-  { read : Lua_api_lib.state -> int -> 'a
-  ; push : Lua_api_lib.state -> 'a -> unit
-  }
+let read_bool ls i =
+  if Lua.isboolean ls i
+  then Lua.toboolean ls i
+  else arg_error ls i (Printf.sprintf "boolean expected, got %s" (got ls i))
+;;
 
-let lua_int_ops : int number_ops = { read = int; push = Lua.pushinteger }
-let lua_float_ops : float number_ops = { read = num; push = Lua.pushnumber }
-
-let color ls i =
-  let pen_color = to_lua_color !Core.Graphics.pen_color in
+let read_color ls i =
+  let pen_color = Color.int_of_packed_color Core.Graphics.pen_color in
   let lc = LuaL.optint ls i pen_color in
-  match of_lua_color lc with
-  | Some c -> c
-  | None -> arg_error ls i (Printf.sprintf "invalid color index: %d" lc)
+  Color.packed_color_of_int lc
 ;;
 
-let list ls i =
+let read_list ls i =
   let n = Lua.objlen ls i in
   List.init n (fun j ->
     Lua.rawgeti ls i (j + 1);
@@ -67,6 +55,14 @@ let list ls i =
     value
   )
 ;;
+
+type 'a number_ops =
+  { read : Lua_api_lib.state -> int -> 'a
+  ; push : Lua_api_lib.state -> 'a -> unit
+  }
+
+let lua_int_ops : int number_ops = { read = read_int; push = Lua.pushinteger }
+let lua_float_ops : float number_ops = { read = read_num; push = Lua.pushnumber }
 
 let unary ops f ls =
   let x = ops.read ls 1 in
@@ -91,51 +87,52 @@ let ternary ops f ls =
 
 let l_noop _ = 0
 
-(* -- GRAPHICS -- *)
+(* -- DRAW STATE -- *)
 (* color c *)
 let l_color ls =
-  let arg_index = 1 in
-  let lc = int ls arg_index in
-  ( match of_lua_color lc with
-    | Some c -> Graphics.color c
-    | None -> arg_error ls arg_index (Printf.sprintf "invalid color index: %d" lc)
-  );
+  let c = read_color ls 1 in
+  Graphics.set_color c.primary c.secondary;
   0
 ;;
 
+(* fillp p [t] *)
+let l_fillp ls =
+  let p = read_int ls 1 in
+  let t = if Lua.gettop ls = 1 then false else read_bool ls 2 in
+  Graphics.set_fill_pattern p t;
+  0
+;;
+
+(* -- GRAPHICS -- *)
 (* cls [c] *)
 let l_cls ls =
-  let c = color ls 1 in
-  Graphics.cls c;
+  let c = read_color ls 1 in
+  Graphics.cls c.primary;
   0
 ;;
 
 (* pset x y [c] *)
 let l_pset ls =
-  let x, y = (int ls 1, int ls 2) in
-  let c = color ls 3 in
+  let x, y = (read_int ls 1, read_int ls 2) in
+  let c = read_color ls 3 in
   Graphics.pset x y c;
   0
 ;;
 
 (* pget x y : c *)
 let l_pget ls =
-  let x, y = (int ls 1, int ls 2) in
+  let x, y = (read_int ls 1, read_int ls 2) in
   let c = Graphics.pget x y in
-  let result =
-    match c with
-    | Some v -> Core.Color.to_enum v
-    | None -> 0
-  in
+  let result = Color.to_enum c in
   Lua.pushnumber ls (float_of_int result);
   1
 ;;
 
 (* line x0 y0 x1 y1 [c] *)
 let l_line ls =
-  let x0, y0 = (int ls 1, int ls 2) in
-  let x1, y1 = (int ls 3, int ls 4) in
-  let c = color ls 5 in
+  let x0, y0 = (read_int ls 1, read_int ls 2) in
+  let x1, y1 = (read_int ls 3, read_int ls 4) in
+  let c = read_color ls 5 in
   Graphics.line x0 y0 x1 y1 c;
   0
 ;;
@@ -143,9 +140,9 @@ let l_line ls =
 (* rect x0 y0 x1 y1 [c] *)
 (* rect_fill x0 y0 x1 y1 [c] *)
 let l_rect_core ls ~f =
-  let x0, y0 = (int ls 1, int ls 2) in
-  let x1, y1 = (int ls 3, int ls 4) in
-  let c = color ls 5 in
+  let x0, y0 = (read_int ls 1, read_int ls 2) in
+  let x1, y1 = (read_int ls 3, read_int ls 4) in
+  let c = read_color ls 5 in
   f x0 y0 x1 y1 c;
   0
 ;;
@@ -156,9 +153,9 @@ let l_rect_fill ls = l_rect_core ls ~f:Graphics.rect_fill
 (* circ x y r [c] *)
 (* circ_fill x y r [c] *)
 let l_circ_core ls ~f =
-  let x, y = (int ls 1, int ls 2) in
-  let r = int ls 3 in
-  let c = color ls 4 in
+  let x, y = (read_int ls 1, read_int ls 2) in
+  let r = read_int ls 3 in
+  let c = read_color ls 4 in
   f x y r c;
   0
 ;;
@@ -177,6 +174,7 @@ let l_sin ls = unary lua_float_ops Math.sin ls
 let l_cos ls = unary lua_float_ops Math.cos ls
 let l_atan2 ls = binary lua_float_ops Math.atan2 ls
 
+(* rnd / rnd limit / rnd table *)
 let l_rnd ls =
   if Lua.gettop ls = 0
   then (
@@ -187,7 +185,7 @@ let l_rnd ls =
   then unary lua_float_ops Math.rnd ls
   else if Lua.istable ls (-1)
   then (
-    let l = list ls 1 in
+    let l = read_list ls 1 in
     let result = Math.rnd_list l in
     Lua.pushnumber ls result;
     1
@@ -196,7 +194,7 @@ let l_rnd ls =
 ;;
 
 let l_srnd ls =
-  let seed = int ls 1 in
+  let seed = read_int ls 1 in
   Math.srnd seed;
   0
 ;;
@@ -215,10 +213,11 @@ let l_rotr ls = binary lua_int_ops Math.rotr ls
 (* -- CORE FUNCTIONS -- *)
 let register_functions ls =
   let functions =
-    [ ("pset", l_pset)
+    [ ("color", l_color)
+    ; ("fillp", l_fillp)
+    ; ("pset", l_pset)
     ; ("pget", l_pget)
     ; ("cls", l_cls)
-    ; ("color", l_color)
     ; ("line", l_line)
     ; ("rect", l_rect)
     ; ("rect_fill", l_rect_fill)
@@ -265,7 +264,7 @@ let register_variables ls =
   for i = Core.Color.min to Core.Color.max do
     let color = Option.get @@ Core.Color.of_enum i in
     let name = String.uppercase_ascii @@ Core.Color.show color in
-    set_int name (i + 1)
+    set_int name i
   done
 ;;
 
