@@ -4,6 +4,16 @@ module RLColor = Raylib.Color
 
 let pixels = CArray.make RLColor.t (Graphics.w * Graphics.h)
 
+let key_mapping =
+  [ (Input.Up, Key.Up)
+  ; (Input.Left, Key.Left)
+  ; (Input.Down, Key.Down)
+  ; (Input.Right, Key.Right)
+  ; (Input.A, Key.Z)
+  ; (Input.B, Key.X)
+  ]
+;;
+
 let update_pixels () =
   for i = 0 to Bytes.length Graphics.fb - 1 do
     let idx = Char.code (Bytes.get Graphics.fb i) in
@@ -33,6 +43,7 @@ let render title ~scale ~runtime ~cart =
   let applied_fps = ref 0 in
 
   while not (window_should_close ()) do
+    Input.update_button_state ~mapping:key_mapping ~f:is_key_down;
     R.call_update vm;
 
     let requested_fps = !Graphics.fps in

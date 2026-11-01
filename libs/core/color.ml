@@ -1,4 +1,4 @@
-(* reference: https://lospec.com/palette-list/pico-8 *)
+(* Ref: https://lospec.com/palette-list/pico-8 *)
 type t =
   | Black
   | Dark_blue
@@ -19,8 +19,8 @@ type t =
 [@@deriving show { with_path = false }, enum]
 
 type packed_color =
-  { mutable primary : t (* used for drawing off bits *)
-  ; mutable secondary : t (* used for drawing on bits *)
+  { mutable primary : t (* Used for drawing "off" bits *)
+  ; mutable secondary : t (* Used for drawing "on" bits *)
   }
 [@@deriving show, make]
 

@@ -7,7 +7,7 @@ exception Lua_error of string
 
 let init, update, draw = ("Init", "Update", "Draw")
 
-(* -- UTILITY FUNCTIONS -- *)
+(* Utility functions *)
 (*
   NOTE: Directly using `LuaL.error` related functions related to corruption of GC. Instead as a hacky method, I'm raising exceptions on OCaml side.
   Ref: https://github.com/c-cube/ezlua#ocaml-5-safety
@@ -98,8 +98,8 @@ let ternary ops f ls =
 
 let l_noop _ = 0
 
-(* -- LUA API FUNCTIONS -- *)
-(* -- DRAW STATE -- *)
+(* Lua API functions *)
+(* -- Draw state -- *)
 (* color c *)
 let l_color ls =
   let c = read_color ls 1 in
@@ -121,7 +121,7 @@ let l_set_fps ls =
   0
 ;;
 
-(* -- GRAPHICS -- *)
+(* -- Graphics -- *)
 (* cls [c] *)
 let l_cls ls =
   let c = read_color ls 1 in
@@ -181,7 +181,28 @@ let l_circ_core ls ~f =
 let l_circ ls = l_circ_core ls ~f:Graphics.circ
 let l_circ_fill ls = l_circ_core ls ~f:Graphics.circ_fill
 
-(* -- MATH -- *)
+(* -- Input controls -- *)
+let l_btn_core ls ~checker =
+  if Lua.gettop ls = 0
+  then (
+    Lua.pushinteger ls (Input.button_state_mask ());
+    1
+  )
+  else (
+    let i = read_int ls 1 in
+    let btn = Input.button_of_enum i in
+    match btn with
+    | Some b ->
+      Lua.pushboolean ls (checker b);
+      1
+    | None -> raise (Lua_error (Printf.sprintf "invalid button index: %d" i))
+  )
+;;
+
+let l_btn ls = l_btn_core ls ~checker:Input.is_pressed
+let l_btnp ls = l_btn_core ls ~checker:Input.is_just_pressed
+
+(* -- Math -- *)
 let l_min ls = binary lua_float_ops Math.min ls
 let l_max ls = binary lua_float_ops Math.max ls
 let l_mid ls = ternary lua_float_ops Math.mid ls
@@ -228,6 +249,7 @@ let l_ashr ls = binary lua_int_ops Math.ashr ls
 let l_rotl ls = binary lua_int_ops Math.rotl ls
 let l_rotr ls = binary lua_int_ops Math.rotr ls
 
+(* -- Utilities -- *)
 let l_time ls =
   let time = Utils.time () in
   Lua.pushnumber ls time;
@@ -296,7 +318,7 @@ let l_debug ls =
     0
 ;;
 
-(* -- CORE FUNCTIONS -- *)
+(* Core *)
 let register_functions ls =
   let functions =
     [ ("color", l_color)
@@ -310,6 +332,8 @@ let register_functions ls =
     ; ("rect_fill", l_rect_fill)
     ; ("circ", l_circ)
     ; ("circ_fill", l_circ_fill)
+    ; ("btn", l_btn)
+    ; ("btnp", l_btnp)
     ; ("min", l_min)
     ; ("max", l_max)
     ; ("mid", l_mid)
@@ -350,9 +374,14 @@ let register_variables ls =
   set_int "W" Graphics.w;
   set_int "H" Graphics.h;
   set_float "PI" Float.pi;
-  for i = Core.Color.min to Core.Color.max do
-    let color = Option.get @@ Core.Color.of_enum i in
-    let name = String.uppercase_ascii @@ Core.Color.show color in
+  for i = Color.min to Color.max do
+    let color = Option.get @@ Color.of_enum i in
+    let name = String.uppercase_ascii @@ Color.show color in
+    set_int name i
+  done;
+  for i = Input.min_button to Input.max_button do
+    let button = Option.get @@ Input.button_of_enum i in
+    let name = String.uppercase_ascii @@ Input.show_button button in
     set_int name i
   done
 ;;

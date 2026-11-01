@@ -1,23 +1,13 @@
-(* -- GLOBAL CONSTANTS -- *)
+(* Global constants *)
 let w, h = (256, 256)
 let fb = Bytes.make (w * h) '\000'
 
-(* -- DRAW STATE -- *)
+(* Draw state *)
 let pen_color = Color.make_packed_color ~primary:Color.Black ~secondary:Color.Black
 let fill_pattern = ref 0 (* 4x4 pattern mask *)
 let fill_transparent = ref false
 let fps = ref 30
 
-(* -- UTILITY FUNCTIONS -- *)
-let is_point_in_bounds x y = (x >= 0 && x < w) && y >= 0 && y < h
-let fb_idx_of_coords x y = (y * w) + x
-
-let is_pixel_on x y =
-  let idx = 15 - ((y land 3 * 4) + (x land 3)) in
-  (!fill_pattern lsr idx) land 1 = 1
-;;
-
-(* -- DRAW STATE MODIFIERS -- *)
 let set_color pri sec =
   pen_color.primary <- pri;
   pen_color.secondary <- sec
@@ -30,7 +20,16 @@ let set_fill_pattern pat transparent =
 
 let set_fps v = fps := v
 
-(* -- GRAPHICS FUNCTIONS -- *)
+(* Utility functions *)
+let is_point_in_bounds x y = (x >= 0 && x < w) && y >= 0 && y < h
+let fb_idx_of_coords x y = (y * w) + x
+
+let is_pixel_on x y =
+  let idx = 15 - ((y land 3 * 4) + (x land 3)) in
+  (!fill_pattern lsr idx) land 1 = 1
+;;
+
+(* Graphics functions *)
 let cls c =
   let b = c |> Color.to_enum |> Char.chr in
   Bytes.fill fb 0 (Bytes.length fb) b

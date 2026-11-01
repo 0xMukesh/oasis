@@ -1,11 +1,11 @@
 --- @meta oasis
 
--- GLOBAL CONSTANTS --
+-- Global constants
 W = 256
 H = 256
 PI = 3.141592653589793
 
--- COLORS --
+-- Colors
 BLACK = 0
 DARK_BLUE = 1
 DARK_PURPLE = 2
@@ -23,7 +23,15 @@ LAVENDER = 13
 PINK = 14
 PEACH = 15
 
--- DRAW STATE --
+-- Buttons
+UP = 0
+LEFT = 1
+DOWN = 2
+RIGHT = 3
+A = 4
+B = 5
+
+-- Draw state
 --- @param color integer
 function color(color) end
 
@@ -34,7 +42,7 @@ function fillp(pattern, transparent) end
 --- @param fps integer
 function set_fps(fps) end
 
--- GRAPHICS --
+-- Graphics
 --- @param x integer
 --- @param y integer
 --- @param color? integer
@@ -81,7 +89,16 @@ function circ(x, y, r, color) end
 --- @param color? integer
 function circ_fill(x, y, r, color) end
 
--- MATH --
+-- Input controls
+--- @param i? integer
+--- @return boolean|integer
+function btn(i) end
+
+--- @param i? integer
+--- @return boolean|integer
+function btnp(i) end
+
+-- Math
 --- @param x number
 --- @param y number
 --- @return number
@@ -178,10 +195,10 @@ function rotl(x, y) end
 --- @return integer
 function rotr(x, y) end
 
--- UTILITIES --
+-- Utilities
 --- @return integer
 function time() end
 
----@param fmt string
----@param ... any
+--- @param fmt string
+--- @param ... any
 function _debug(fmt, ...) end
