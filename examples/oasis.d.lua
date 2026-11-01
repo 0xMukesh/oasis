@@ -181,3 +181,7 @@ function rotr(x, y) end
 -- UTILITIES --
 --- @return integer
 function time() end
+
+---@param fmt string
+---@param ... any
+function _debug(fmt, ...) end

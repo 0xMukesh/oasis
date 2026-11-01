@@ -30,34 +30,41 @@ let arg_error ls i msg =
 
 let got ls i = Lua.typename ls (Lua.type_ ls i)
 
+let reader ~validator ~convertor ~expected ls i =
+  if validator ls i
+  then convertor ls i
+  else arg_error ls i (Printf.sprintf "%s expected, got %s" expected (got ls i))
+;;
+
 let read_num ls i =
-  if Lua.isnumber ls i
-  then Lua.tonumber ls i
-  else arg_error ls i (Printf.sprintf "number expected, got %s" (got ls i))
+  reader ~validator:Lua.isnumber ~convertor:Lua.tonumber ~expected:"number" ls i
+;;
+
+let read_string ls i =
+  Option.get
+  @@ reader ~validator:Lua.isstring ~convertor:Lua.tostring ~expected:"string" ls i
+;;
+
+let read_bool ls i =
+  reader ~validator:Lua.isboolean ~convertor:Lua.toboolean ~expected:"boolean" ls i
 ;;
 
 let read_int ls i = read_num ls i |> int_of_float
 
-let read_bool ls i =
-  if Lua.isboolean ls i
-  then Lua.toboolean ls i
-  else arg_error ls i (Printf.sprintf "boolean expected, got %s" (got ls i))
+let read_list ~convertor ls i =
+  let n = Lua.objlen ls i in
+  List.init n (fun j ->
+    Lua.rawgeti ls i (j + 1);
+    let value = convertor ls (-1) in
+    Lua.pop ls 1;
+    value
+  )
 ;;
 
 let read_color ls i =
   let pen_color = Color.int_of_packed_color Core.Graphics.pen_color in
   let lc = LuaL.optint ls i pen_color in
   Color.packed_color_of_int lc
-;;
-
-let read_list ls i =
-  let n = Lua.objlen ls i in
-  List.init n (fun j ->
-    Lua.rawgeti ls i (j + 1);
-    let value = Lua.tonumber ls (-1) in
-    Lua.pop ls 1;
-    value
-  )
 ;;
 
 type 'a number_ops =
@@ -91,6 +98,7 @@ let ternary ops f ls =
 
 let l_noop _ = 0
 
+(* -- LUA API FUNCTIONS -- *)
 (* -- DRAW STATE -- *)
 (* color c *)
 let l_color ls =
@@ -195,7 +203,7 @@ let l_rnd ls =
   then unary lua_float_ops Math.rnd ls
   else if Lua.istable ls (-1)
   then (
-    let l = read_list ls 1 in
+    let l = read_list ~convertor:Lua.tonumber ls 1 in
     let result = Math.rnd_list l in
     Lua.pushnumber ls result;
     1
@@ -221,9 +229,71 @@ let l_rotl ls = binary lua_int_ops Math.rotl ls
 let l_rotr ls = binary lua_int_ops Math.rotr ls
 
 let l_time ls =
-  let time = Math.time () in
+  let time = Utils.time () in
   Lua.pushnumber ls time;
   1
+;;
+
+let l_debug ls =
+  let nargs = Lua.gettop ls in
+  match nargs with
+  | 0 ->
+    Utils.debug "\n";
+    0
+  | 1 ->
+    let s = read_string ls 1 in
+    Utils.debug s;
+    0
+  | _ ->
+    let fmt = read_string ls 1 in
+    let out = Buffer.create (String.length fmt) in
+    let next_arg = ref 2 in
+    let len = String.length fmt in
+
+    let require_arg spec =
+      if !next_arg > nargs
+      then arg_error ls 1 (Printf.sprintf "missing argument for %%%c" spec);
+      let i = !next_arg in
+      incr next_arg;
+      i
+    in
+
+    let rec scan i =
+      if i >= len
+      then ()
+      else if fmt.[i] <> '%'
+      then (
+        Buffer.add_char out fmt.[i];
+        scan (i + 1)
+      )
+      else if i + 1 >= len
+      then arg_error ls 1 (Printf.sprintf "incomplete format specifier at char #%d" i)
+      else (
+        match fmt.[i + 1] with
+        | '%' ->
+          Buffer.add_char out '%';
+          scan (i + 2)
+        | ('s' | 'd' | 'f') as spec ->
+          let n = require_arg spec in
+          if Lua.isnil ls n
+          then Buffer.add_string out "nil"
+          else (
+            match spec with
+            | 's' -> Buffer.add_string out (read_string ls n)
+            | 'd' -> Buffer.add_string out (string_of_int @@ read_int ls n)
+            | 'f' -> Buffer.add_string out (string_of_float @@ read_num ls n)
+            | _ -> assert false
+          );
+          scan (i + 2)
+        | c -> arg_error ls 1 (Printf.sprintf "unsupported format specifier: %%%c" c)
+      )
+    in
+    scan 0;
+
+    if !next_arg <= nargs then arg_error ls !next_arg "unused arguments";
+
+    Utils.debug (Buffer.contents out);
+    0
 ;;
 
 (* -- CORE FUNCTIONS -- *)
@@ -262,6 +332,7 @@ let register_functions ls =
     ; ("rotl", l_rotl)
     ; ("rotr", l_rotr)
     ; ("time", l_time)
+    ; ("_debug", l_debug)
     ]
   in
   List.iter (fun (name, f) -> Lua.register ls name f) functions

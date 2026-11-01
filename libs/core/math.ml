@@ -32,5 +32,3 @@ let rotr x n =
   Int32.logor (Int32.shift_right_logical x32 n) (Int32.shift_left x32 (32 - n))
   |> Int32.to_int
 ;;
-
-let time = Unix.time

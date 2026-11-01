@@ -1,6 +1,6 @@
 -- inspo: https://github.com/pipeseroni/pipes.sh/blob/master/pipes.sh
 
-local initial_num_pipes = 5
+local initial_num_pipes = 10
 local same_dir_prob = 97
 
 local pipes = {}
