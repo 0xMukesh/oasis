@@ -1,9 +1,8 @@
 local cells = {}
-local frame = 0
 local cell_size = 4
 local cols = floor(W / cell_size)
 local rows = floor(H / cell_size)
-local initial_num_cells = floor(30 * cols * rows / 100)
+local initial_num_cells = floor(30 * cols * rows / 100) -- filling 30% of the grid with cells
 
 local function count_neighbours(row, col)
     local count = 0

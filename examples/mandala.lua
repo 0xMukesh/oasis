@@ -7,9 +7,6 @@ local SPOKE_COUNT = 55
 local BASE_RADIUS = 80
 local DOT_SPACING = 3
 
-function Init()
-end
-
 function Update()
     elapsed_time = elapsed_time + 0.001
     phase = phase + 0.02

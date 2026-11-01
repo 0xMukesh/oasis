@@ -8,6 +8,10 @@ exception Lua_error of string
 let init, update, draw = ("Init", "Update", "Draw")
 
 (* -- UTILITY FUNCTIONS -- *)
+(*
+  NOTE: Directly using `LuaL.error` related functions related to corruption of GC. Instead as a hacky method, I'm raising exceptions on OCaml side.
+  Ref: https://github.com/c-cube/ezlua#ocaml-5-safety
+*)
 let where_prefix ls level =
   LuaL.where ls level;
   let s =
