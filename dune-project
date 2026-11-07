@@ -21,10 +21,10 @@
  (description "An OCaml based fantasy console built with Raylib")
  (depends
   ocaml
-  ocaml-lsp-server
-  ocamlformat
-  ppx_deriving
   raylib
-  ocaml-lua)
+  ocaml-lua
+  ppx_deriving
+  (ocaml-lsp-server :with-dev-setup)
+  (ocamlformat :with-dev-setup))
  (tags
   ("fantasy-console" "raylib")))
