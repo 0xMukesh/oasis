@@ -1,11 +1,10 @@
 -- inspo: https://github.com/pipeseroni/pipes.sh/blob/master/pipes.sh
 
-local initial_num_pipes = 10
+local num_pipes = 10
 local same_dir_prob = 97
 
 local pipes = {}
 local palette = { RED, YELLOW, GREEN, DARK_GREEN, BLUE, LAVENDER, PINK, PEACH }
-local UP, LEFT, DOWN, RIGHT = 0, 1, 2, 3
 local dirs = { UP, LEFT, DOWN, RIGHT }
 
 local function create_pipe()
@@ -81,19 +80,19 @@ end
 function Init()
     srnd(time())
 
-    for _ = 1, initial_num_pipes do
+    for _ = 1, num_pipes do
         create_pipe()
     end
 end
 
 function Update()
-    for i = 1, initial_num_pipes do
+    for i = 1, num_pipes do
         pipes[i]:update()
     end
 end
 
 function Draw()
-    for i = 1, initial_num_pipes do
+    for i = 1, num_pipes do
         pipes[i]:draw()
     end
 end

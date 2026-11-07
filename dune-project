@@ -17,8 +17,8 @@
 
 (package
  (name oasis)
- (synopsis "An OCaml based fantasy console, made using Raylib")
- (description "An OCaml based fantasy console, made using Raylib")
+ (synopsis "An OCaml based fantasy console built with Raylib")
+ (description "An OCaml based fantasy console built with Raylib")
  (depends
   ocaml
   ocaml-lsp-server

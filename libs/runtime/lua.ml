@@ -387,7 +387,8 @@ let register_variables ls =
 ;;
 
 let create_vm () =
-  let ls = LuaL.newstate () in
+  let max_memory_size = 2 * 1024 * 1024 in
+  let ls = LuaL.newstate ~max_memory_size () in
   register_functions ls;
   register_variables ls;
   ls
