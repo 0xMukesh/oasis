@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 env:
-  EXE_PATH: _build/default/bin/main.exe
+  EXE_PATH: main.exe
   APP_NAME: oasis
 
 jobs:
