@@ -1,35 +1,67 @@
-local grid = { {} }
-local cursor = {}
+local grid              = { {} }
+local fire_strength     = { {} }
+local cursor            = {}
 
-local cell_size = 4
-local cols = floor(W / cell_size)
-local rows = floor(H / cell_size)
+local cell_size         = 4
+local cols              = floor(W / cell_size)
+local rows              = floor(H / cell_size)
+local max_fire_strength = 10
 
-local dirs = { UP, LEFT, DOWN, RIGHT }
+local dirs              = { UP, LEFT, DOWN, RIGHT }
 
-local EMPTY, SAND, WATER, WOOD = 0, 1, 2, 3
-local particles = {
+local CELL_TYPE_CURSOR  = "cursor"
+local CELL_TYPE_ELEMENT = "element"
+
+
+-- elements
+local EMPTY, SAND, WATER, WOOD, FIRE, STEAM = 0, 1, 2, 3, 4, 5
+local particles                             = {
     { id = SAND,  color = YELLOW },
     { id = WATER, color = BLUE },
     { id = WOOD,  color = BROWN },
+    { id = FIRE,  color = RED,       palette = { RED, ORANGE, YELLOW } },
+    { id = STEAM, color = LIGHT_GRAY }
 }
 
-local CELL_MODE_OUTLINE = "outline"
-local CELL_MODE_FILL = "fill"
-
-local function draw_cell(i, j, color, mode)
+-- utils
+local function draw_cell(i, j, type, color)
     local x0 = (i - 1) * cell_size
     local y0 = (j - 1) * cell_size
     local x1 = x0 + cell_size - 1
     local y1 = y0 + cell_size - 1
 
-    if mode == CELL_MODE_FILL then
-        rect_fill(x0, y0, x1, y1, color)
-    elseif mode == CELL_MODE_OUTLINE then
+    if type == CELL_TYPE_CURSOR then
         rect(x0, y0, x1, y1, color)
+    elseif type == CELL_TYPE_ELEMENT then
+        rect_fill(x0, y0, x1, y1, color)
     end
 end
 
+local function get_element_cell_color(i, j)
+    local cell = grid[i][j]
+
+    if cell == SAND then
+        return particles[SAND].color
+    elseif cell == WATER then
+        return particles[WATER].color
+    elseif cell == WOOD then
+        return particles[WOOD].color
+    elseif cell == FIRE then
+        local strength = fire_strength[i][j]
+
+        if strength > max_fire_strength * 0.7 then
+            return particles[FIRE].palette[1]
+        elseif strength > max_fire_strength * 0.4 then
+            return particles[FIRE].palette[2]
+        else
+            return particles[FIRE].palette[3]
+        end
+    elseif cell == STEAM then
+        return particles[STEAM].color
+    end
+end
+
+-- grid
 local function setup_grid(g)
     for i = 1, cols do
         g[i] = {}
@@ -75,6 +107,46 @@ local function update_wood(i, j)
     grid[i][j] = WOOD
 end
 
+local function update_fire(i, j)
+    if fire_strength[i][j] <= 0 then
+        grid[i][j] = EMPTY
+    end
+
+    for dx = -1, 1 do
+        for dy = -1, 1 do
+            local next_i = i + dx
+            local next_j = j + dy
+
+            if next_i >= 1 and next_i <= cols and next_j >= 1 and next_j <= rows then
+                if grid[i + dx][j + dy] == WATER then
+                    grid[i + dx][j + dy] = STEAM
+                elseif grid[i + dx][j + dy] == WOOD then
+                    grid[i + dx][j + dy] = FIRE
+                    fire_strength[i + dx][j + dy] = max_fire_strength
+                end
+            end
+        end
+    end
+
+    fire_strength[i][j] = fire_strength[i][j] - 1
+end
+
+local function update_steam(i, j)
+    local choice = rnd({ -1, 1 })
+    local next_i = i + choice
+
+    if j < 2 then
+        local random = rnd()
+        if random < 0.02 then -- 2% chance of the steam cell to be converted into water in this frame
+            grid[i][j] = WATER
+        end
+    end
+
+    if next_i >= 1 and next_i <= cols and j - 1 >= 1 and grid[next_i][j - 1] == EMPTY then
+        grid_swap(i, j, next_i, j - 1)
+    end
+end
+
 local function update_grid()
     for i = 1, cols do
         for j = rows - 1, 1, -1 do
@@ -86,6 +158,10 @@ local function update_grid()
                 update_water(i, j)
             elseif particle == WOOD then
                 update_wood(i, j)
+            elseif particle == FIRE then
+                update_fire(i, j)
+            elseif particle == STEAM then
+                update_steam(i, j)
             end
         end
     end
@@ -96,12 +172,13 @@ local function draw_grid()
         for j = 1, rows do
             local particle = grid[i][j]
             if particle ~= 0 then
-                draw_cell(i, j, particles[particle].color, CELL_MODE_FILL)
+                draw_cell(i, j, CELL_TYPE_ELEMENT, get_element_cell_color(i, j))
             end
         end
     end
 end
 
+-- cursor
 local function create_cursor()
     cursor = {
         i = floor(cols / 2),
@@ -109,35 +186,33 @@ local function create_cursor()
         selected_particle = nil,
         draw = function(self)
             if self.selected_particle == nil then
-                draw_cell(self.i, self.j, LAVENDER, CELL_MODE_OUTLINE)
+                draw_cell(self.i, self.j, CELL_TYPE_CURSOR, LAVENDER)
             else
-                draw_cell(self.i, self.j, particles[self.selected_particle].color, CELL_MODE_FILL)
+                local color = particles[self.selected_particle].color
+                draw_cell(self.i, self.j, CELL_TYPE_ELEMENT, color)
             end
         end,
         _advance = function(self, move)
             -- move the cursor
             if move == UP then
                 self.j = self.j - 1
-            end
-            if move == LEFT then
+            elseif move == LEFT then
                 self.i = self.i - 1
-            end
-            if move == DOWN then
+            elseif move == DOWN then
                 self.j = self.j + 1
-            end
-            if move == RIGHT then
+            else
                 self.i = self.i + 1
             end
 
-            -- add particles below it
+            -- place particles
             if self.i < 1 then self.i = 1 end
             if self.i > cols then self.i = cols end
             if self.j < 1 then self.j = 1 end
             if self.j > rows then self.j = rows end
 
             if self.selected_particle ~= nil and self.j < rows then
-                if grid[self.i][self.j + 1] == 0 then
-                    grid[self.i][self.j + 1] = self.selected_particle
+                if grid[self.i][self.j] == EMPTY then
+                    grid[self.i][self.j] = self.selected_particle
                 end
             end
         end,
@@ -158,6 +233,7 @@ local function create_cursor()
             for i = 1, #dirs do
                 if btn(dirs[i]) then
                     self:_advance(dirs[i])
+                    break
                 end
             end
         end
@@ -168,6 +244,7 @@ function Init()
     rnd(time())
 
     setup_grid(grid)
+    setup_grid(fire_strength)
     create_cursor()
 end
 
