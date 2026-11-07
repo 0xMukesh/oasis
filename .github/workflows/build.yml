@@ -39,7 +39,7 @@ jobs:
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: "5.2"
-          dune-cache: true
+          cache: true
 
       - name: Install dependencies
         run: opam install . --deps-only
