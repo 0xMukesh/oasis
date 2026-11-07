@@ -139,3 +139,4 @@ let circ_draw_filled xc yc x y pc =
 
 let circ xc yc r c = circ_core xc yc r c ~draw_step:circ_draw_outline
 let circ_fill xc yc r c = circ_core xc yc r c ~draw_step:circ_draw_filled
+let print text x y color = ()

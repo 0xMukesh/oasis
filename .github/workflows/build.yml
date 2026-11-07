@@ -1,0 +1,95 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  EXE_PATH: _build/default/bin/main.exe
+  APP_NAME: oasis
+
+jobs:
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x86_64
+          - os: macos-15-intel
+            target: macos-x86_64
+          - os: macos-latest
+            target: macos-arm64
+          - os: windows-latest
+            target: windows-x86_64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: "5.2"
+          dune-cache: true
+
+      - name: Install dependencies
+        run: opam install . --deps-only
+
+      - name: Build
+        run: opam exec -- dune build --release
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p dist
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp "_build/default/${EXE_PATH}" "dist/${APP_NAME}.exe"
+            cd dist
+            7z a "../${APP_NAME}-${{ matrix.target }}.zip" "${APP_NAME}.exe"
+          else
+            cp "_build/default/${EXE_PATH}" "dist/${APP_NAME}"
+            chmod +x "dist/${APP_NAME}"
+            tar -czf "${APP_NAME}-${{ matrix.target }}.tar.gz" -C dist "${APP_NAME}"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-${{ matrix.target }}
+          path: |
+            ${{ env.APP_NAME }}-${{ matrix.target }}.tar.gz
+            ${{ env.APP_NAME }}-${{ matrix.target }}.zip
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: |
+          cd artifacts
+          sha256sum * > SHA256SUMS.txt
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true

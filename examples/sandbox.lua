@@ -15,12 +15,12 @@ local CELL_TYPE_ELEMENT = "element"
 
 -- elements
 local EMPTY, SAND, WATER, WOOD, FIRE, STEAM = 0, 1, 2, 3, 4, 5
-local particles                             = {
+local elements                              = {
     { id = SAND,  color = YELLOW },
     { id = WATER, color = BLUE },
     { id = WOOD,  color = BROWN },
     { id = FIRE,  color = RED,       palette = { RED, ORANGE, YELLOW } },
-    { id = STEAM, color = LIGHT_GRAY }
+    { id = STEAM, color = LIGHT_GRAY },
 }
 
 -- utils
@@ -40,24 +40,18 @@ end
 local function get_element_cell_color(i, j)
     local cell = grid[i][j]
 
-    if cell == SAND then
-        return particles[SAND].color
-    elseif cell == WATER then
-        return particles[WATER].color
-    elseif cell == WOOD then
-        return particles[WOOD].color
-    elseif cell == FIRE then
+    if cell == FIRE then
         local strength = fire_strength[i][j]
 
         if strength > max_fire_strength * 0.7 then
-            return particles[FIRE].palette[1]
+            return elements[FIRE].palette[1]
         elseif strength > max_fire_strength * 0.4 then
-            return particles[FIRE].palette[2]
+            return elements[FIRE].palette[2]
         else
-            return particles[FIRE].palette[3]
+            return elements[FIRE].palette[3]
         end
-    elseif cell == STEAM then
-        return particles[STEAM].color
+    else
+        return elements[cell].color
     end
 end
 
@@ -183,12 +177,12 @@ local function create_cursor()
     cursor = {
         i = floor(cols / 2),
         j = floor(rows / 2),
-        selected_particle = nil,
+        selected_element = nil,
         draw = function(self)
-            if self.selected_particle == nil then
+            if self.selected_element == nil then
                 draw_cell(self.i, self.j, CELL_TYPE_CURSOR, LAVENDER)
             else
-                local color = particles[self.selected_particle].color
+                local color = elements[self.selected_element].color
                 draw_cell(self.i, self.j, CELL_TYPE_ELEMENT, color)
             end
         end,
@@ -210,24 +204,24 @@ local function create_cursor()
             if self.j < 1 then self.j = 1 end
             if self.j > rows then self.j = rows end
 
-            if self.selected_particle ~= nil and self.j < rows then
+            if self.selected_element ~= nil and self.j < rows then
                 if grid[self.i][self.j] == EMPTY then
-                    grid[self.i][self.j] = self.selected_particle
+                    grid[self.i][self.j] = self.selected_element
                 end
             end
         end,
         update = function(self)
             if btnp(A) then
-                if self.selected_particle == nil then
-                    self.selected_particle = 1
+                if self.selected_element == nil then
+                    self.selected_element = 1
                 else
-                    self.selected_particle = (self.selected_particle + 1) % (#particles + 1)
-                    if self.selected_particle == 0 then
-                        self.selected_particle = nil
+                    self.selected_element = (self.selected_element + 1) % (#elements + 1)
+                    if self.selected_element == 0 then
+                        self.selected_element = nil
                     end
                 end
             elseif btnp(B) then
-                self.selected_particle = nil
+                self.selected_element = nil
             end
 
             for i = 1, #dirs do
@@ -240,6 +234,7 @@ local function create_cursor()
     }
 end
 
+-- oasis callbacks
 function Init()
     rnd(time())
 
