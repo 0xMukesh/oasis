@@ -1,32 +1,34 @@
-local grid              = { {} }
-local fire_strength     = { {} }
-local cursor            = {}
+local grid               = { {} }
+local fire_strength      = { {} }
+local cursor             = {}
 
-local cell_size         = 4
-local cols              = floor(W / cell_size)
-local rows              = floor(H / cell_size)
-local max_fire_strength = 10
+local cell_size          = 4
+local text_banner_height = 20
+local cols               = floor(W / cell_size)
+local rows               = floor((H - text_banner_height) / cell_size)
+local max_fire_strength  = 10
+local selected_element   = nil
 
-local dirs              = { UP, LEFT, DOWN, RIGHT }
+local dirs               = { UP, LEFT, DOWN, RIGHT }
 
-local CELL_TYPE_CURSOR  = "cursor"
-local CELL_TYPE_ELEMENT = "element"
+local CELL_TYPE_CURSOR   = "cursor"
+local CELL_TYPE_ELEMENT  = "element"
 
 
 -- elements
 local EMPTY, SAND, WATER, WOOD, FIRE, STEAM = 0, 1, 2, 3, 4, 5
 local elements                              = {
-    { id = SAND,  color = YELLOW },
-    { id = WATER, color = BLUE },
-    { id = WOOD,  color = BROWN },
-    { id = FIRE,  color = RED,       palette = { RED, ORANGE, YELLOW } },
-    { id = STEAM, color = LIGHT_GRAY },
+    { id = SAND,  text = "SAND",  color = YELLOW, },
+    { id = WATER, text = "WATER", color = BLUE },
+    { id = WOOD,  text = "WOOD",  color = BROWN },
+    { id = FIRE,  text = "FIRE",  color = RED,       palette = { RED, ORANGE, YELLOW } },
+    { id = STEAM, text = "STEAM", color = LIGHT_GRAY },
 }
 
 -- utils
 local function draw_cell(i, j, type, color)
     local x0 = (i - 1) * cell_size
-    local y0 = (j - 1) * cell_size
+    local y0 = text_banner_height + (j - 1) * cell_size
     local x1 = x0 + cell_size - 1
     local y1 = y0 + cell_size - 1
 
@@ -177,12 +179,11 @@ local function create_cursor()
     cursor = {
         i = floor(cols / 2),
         j = floor(rows / 2),
-        selected_element = nil,
         draw = function(self)
-            if self.selected_element == nil then
+            if selected_element == nil then
                 draw_cell(self.i, self.j, CELL_TYPE_CURSOR, LAVENDER)
             else
-                local color = elements[self.selected_element].color
+                local color = elements[selected_element].color
                 draw_cell(self.i, self.j, CELL_TYPE_ELEMENT, color)
             end
         end,
@@ -204,24 +205,24 @@ local function create_cursor()
             if self.j < 1 then self.j = 1 end
             if self.j > rows then self.j = rows end
 
-            if self.selected_element ~= nil and self.j < rows then
+            if selected_element ~= nil and self.j < rows then
                 if grid[self.i][self.j] == EMPTY then
-                    grid[self.i][self.j] = self.selected_element
+                    grid[self.i][self.j] = selected_element
                 end
             end
         end,
         update = function(self)
             if btnp(A) then
-                if self.selected_element == nil then
-                    self.selected_element = 1
+                if selected_element == nil then
+                    selected_element = 1
                 else
-                    self.selected_element = (self.selected_element + 1) % (#elements + 1)
-                    if self.selected_element == 0 then
-                        self.selected_element = nil
+                    selected_element = (selected_element + 1) % (#elements + 1)
+                    if selected_element == 0 then
+                        selected_element = nil
                     end
                 end
             elseif btnp(B) then
-                self.selected_element = nil
+                selected_element = nil
             end
 
             for i = 1, #dirs do
@@ -232,6 +233,19 @@ local function create_cursor()
             end
         end
     }
+end
+
+-- text banner
+local function draw_text_banner()
+    local selected_element_text = ""
+    if selected_element == nil then
+        selected_element_text = "NIL"
+    else
+        selected_element_text = elements[selected_element].text
+    end
+
+    local text = "ELEMENT: " .. selected_element_text
+    print(text, 5, 5, WHITE)
 end
 
 -- oasis callbacks
@@ -252,4 +266,5 @@ function Draw()
     cls(BLACK)
     draw_grid()
     cursor:draw()
+    draw_text_banner()
 end

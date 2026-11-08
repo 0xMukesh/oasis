@@ -89,6 +89,12 @@ function circ(x, y, r, color) end
 --- @param color? integer
 function circ_fill(x, y, r, color) end
 
+--- @param text string
+--- @param x integer
+--- @param y integer
+--- @param color? integer
+function print(text, x, y, color) end
+
 -- Input controls
 --- @param i? integer
 --- @return boolean|integer

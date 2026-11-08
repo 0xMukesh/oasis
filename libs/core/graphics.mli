@@ -21,3 +21,4 @@ val rect : int -> int -> int -> int -> Color.packed_color -> unit
 val rect_fill : int -> int -> int -> int -> Color.packed_color -> unit
 val circ : int -> int -> int -> Color.packed_color -> unit
 val circ_fill : int -> int -> int -> Color.packed_color -> unit
+val print : string -> int -> int -> Color.t -> unit

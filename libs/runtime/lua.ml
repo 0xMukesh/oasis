@@ -181,6 +181,15 @@ let l_circ_core ls ~f =
 let l_circ ls = l_circ_core ls ~f:Graphics.circ
 let l_circ_fill ls = l_circ_core ls ~f:Graphics.circ_fill
 
+(* print text x y [c] *)
+let l_print ls =
+  let text = read_string ls 1 in
+  let x, y = (read_int ls 2, read_int ls 3) in
+  let c = read_color ls 4 in
+  Graphics.print text x y c.primary;
+  0
+;;
+
 (* -- Input controls -- *)
 let l_btn_core ls ~checker =
   if Lua.gettop ls = 0
@@ -332,6 +341,7 @@ let register_functions ls =
     ; ("rect_fill", l_rect_fill)
     ; ("circ", l_circ)
     ; ("circ_fill", l_circ_fill)
+    ; ("print", l_print)
     ; ("btn", l_btn)
     ; ("btnp", l_btnp)
     ; ("min", l_min)

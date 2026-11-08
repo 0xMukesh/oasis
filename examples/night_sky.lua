@@ -18,6 +18,7 @@ function Update()
 end
 
 function Draw()
+    cls(BLACK)
     -- the ocean
     rect_fill(0, horizon, W - 1, H - 1, DARK_BLUE)
 

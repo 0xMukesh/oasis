@@ -139,4 +139,24 @@ let circ_draw_filled xc yc x y pc =
 
 let circ xc yc r c = circ_core xc yc r c ~draw_step:circ_draw_outline
 let circ_fill xc yc r c = circ_core xc yc r c ~draw_step:circ_draw_filled
-let print text x y color = ()
+
+let print text x y c =
+  let color = Color.make_packed_color ~primary:c ~secondary:Black in
+  let draw_row cx dy bits =
+    let rec loop dx =
+      if dx > 3
+      then ()
+      else (
+        if bits land (1 lsl (3 - dx)) <> 0 then pset (cx + dx) (y + dy) color else ();
+        loop (dx + 1)
+      )
+    in
+    loop 0
+  in
+  let draw_char i ch =
+    let idx = Char.code ch - 32 in
+    if idx >= 0 && idx < Array.length Font.fontset
+    then List.iteri (draw_row (x + (i * 4))) Font.fontset.(idx)
+  in
+  String.iteri draw_char text
+;;
