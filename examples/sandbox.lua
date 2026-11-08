@@ -3,7 +3,7 @@ local fire_strength      = { {} }
 local cursor             = {}
 
 local cell_size          = 4
-local text_banner_height = 20
+local text_banner_height = 12
 local cols               = floor(W / cell_size)
 local rows               = floor((H - text_banner_height) / cell_size)
 local max_fire_strength  = 10
@@ -26,7 +26,7 @@ local elements                              = {
 }
 
 -- utils
-local function draw_cell(i, j, type, color)
+local function draw_cell(i, j, type, color, draw_frame)
     local x0 = (i - 1) * cell_size
     local y0 = text_banner_height + (j - 1) * cell_size
     local x1 = x0 + cell_size - 1
@@ -35,7 +35,12 @@ local function draw_cell(i, j, type, color)
     if type == CELL_TYPE_CURSOR then
         rect(x0, y0, x1, y1, color)
     elseif type == CELL_TYPE_ELEMENT then
-        rect_fill(x0, y0, x1, y1, color)
+        if draw_frame then
+            rect(x0, y0, x1, y1, WHITE)
+            rect_fill(x0 + 1, y0 + 1, x1 - 1, y1 - 1, color)
+        else
+            rect_fill(x0, y0, x1, y1, color)
+        end
     end
 end
 
@@ -184,7 +189,7 @@ local function create_cursor()
                 draw_cell(self.i, self.j, CELL_TYPE_CURSOR, LAVENDER)
             else
                 local color = elements[selected_element].color
-                draw_cell(self.i, self.j, CELL_TYPE_ELEMENT, color)
+                draw_cell(self.i, self.j, CELL_TYPE_ELEMENT, color, true)
             end
         end,
         _advance = function(self, move)
