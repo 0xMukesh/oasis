@@ -15,6 +15,7 @@ let sgn (n : float) = if n >= 0.0 then 1. else -1.
 let band x y = x land y
 let bor x y = x lor y
 let bxor x y = x lxor y
+let bnot = lnot
 let shl num bits = num lsl bits
 let lshr num bits = num lsr bits
 let ashr num bits = num asr bits

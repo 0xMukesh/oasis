@@ -85,8 +85,10 @@ local function update_sand(i, j)
     local choice = rnd({ -1, 1 })
     local next_i = i + choice
 
-    if next_i >= 1 and next_i <= cols and grid[next_i][j + 1] == EMPTY then
-        grid_swap(i, j, next_i, j + 1)
+    if next_i >= 1 and next_i <= cols then
+        if grid[next_i][j + 1] == EMPTY then
+            grid_swap(i, j, next_i, j + 1)
+        end
     end
 end
 
@@ -99,8 +101,10 @@ local function update_water(i, j)
     local choice = rnd({ -1, 1 })
     local next_i = i + choice
 
-    if next_i >= 1 and next_i <= cols and grid[next_i][j] == EMPTY then
-        grid_swap(i, j, next_i, j)
+    if next_i >= 1 and next_i <= cols then
+        if grid[next_i][j] == EMPTY then
+            grid_swap(i, j, next_i, j)
+        end
     end
 end
 
@@ -136,15 +140,18 @@ local function update_steam(i, j)
     local choice = rnd({ -1, 1 })
     local next_i = i + choice
 
+    -- condensation
     if j < 2 then
         local random = rnd()
         if random < 0.02 then -- 2% chance of the steam cell to be converted into water in this frame
             grid[i][j] = WATER
         end
-    end
-
-    if next_i >= 1 and next_i <= cols and j - 1 >= 1 and grid[next_i][j - 1] == EMPTY then
-        grid_swap(i, j, next_i, j - 1)
+    else
+        if next_i >= 1 and next_i <= cols and j - 1 >= 1 and j - 1 <= rows then
+            if grid[next_i][j - 1] == EMPTY or grid[next_i][j - 1] == WATER then
+                grid_swap(i, j, next_i, j - 1)
+            end
+        end
     end
 end
 

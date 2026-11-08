@@ -252,6 +252,7 @@ let l_sgn ls = unary lua_float_ops Math.sgn ls
 let l_band ls = binary lua_int_ops Math.band ls
 let l_bor ls = binary lua_int_ops Math.bor ls
 let l_bxor ls = binary lua_int_ops Math.bxor ls
+let l_bnot ls = unary lua_int_ops Math.bnot ls
 let l_shl ls = binary lua_int_ops Math.shl ls
 let l_lshr ls = binary lua_int_ops Math.lshr ls
 let l_ashr ls = binary lua_int_ops Math.ashr ls
@@ -266,15 +267,20 @@ let l_time ls =
 ;;
 
 let l_debug ls =
+  let s = read_string ls 1 in
+  Utils.debug s;
+  0
+;;
+
+let l_format ls =
   let nargs = Lua.gettop ls in
   match nargs with
-  | 0 ->
-    Utils.debug "\n";
-    0
+  | 0 -> arg_error ls 1 "missing format string"
   | 1 ->
     let s = read_string ls 1 in
-    Utils.debug s;
-    0
+    let formatted_s = Utils.format s in
+    Lua.pushstring ls formatted_s;
+    1
   | _ ->
     let fmt = read_string ls 1 in
     let out = Buffer.create (String.length fmt) in
@@ -287,6 +293,21 @@ let l_debug ls =
       let i = !next_arg in
       incr next_arg;
       i
+    in
+
+    let format_arg spec n =
+      if Lua.isnil ls n
+      then "nil"
+      else (
+        match spec with
+        | 's' -> read_string ls n
+        | 'd' -> string_of_int (read_int ls n)
+        | 'f' -> string_of_float (read_num ls n)
+        | 'b' -> if read_bool ls n then "true" else "false"
+        | 'x' -> Printf.sprintf "%x" (read_int ls n)
+        | 'X' -> Printf.sprintf "%X" (read_int ls n)
+        | _ -> assert false
+      )
     in
 
     let rec scan i =
@@ -304,17 +325,9 @@ let l_debug ls =
         | '%' ->
           Buffer.add_char out '%';
           scan (i + 2)
-        | ('s' | 'd' | 'f') as spec ->
+        | ('s' | 'd' | 'f' | 'b' | 'x' | 'X') as spec ->
           let n = require_arg spec in
-          if Lua.isnil ls n
-          then Buffer.add_string out "nil"
-          else (
-            match spec with
-            | 's' -> Buffer.add_string out (read_string ls n)
-            | 'd' -> Buffer.add_string out (string_of_int @@ read_int ls n)
-            | 'f' -> Buffer.add_string out (string_of_float @@ read_num ls n)
-            | _ -> assert false
-          );
+          Buffer.add_string out (format_arg spec n);
           scan (i + 2)
         | c -> arg_error ls 1 (Printf.sprintf "unsupported format specifier: %%%c" c)
       )
@@ -323,8 +336,8 @@ let l_debug ls =
 
     if !next_arg <= nargs then arg_error ls !next_arg "unused arguments";
 
-    Utils.debug (Buffer.contents out);
-    0
+    Lua.pushstring ls (Buffer.contents out);
+    1
 ;;
 
 (* Core *)
@@ -360,13 +373,15 @@ let register_functions ls =
     ; ("band", l_band)
     ; ("bor", l_bor)
     ; ("bxor", l_bxor)
+    ; ("bnot", l_bnot)
     ; ("shl", l_shl)
     ; ("lshr", l_lshr)
     ; ("ashr", l_ashr)
     ; ("rotl", l_rotl)
     ; ("rotr", l_rotr)
     ; ("time", l_time)
-    ; ("_debug", l_debug)
+    ; ("debug", l_debug)
+    ; ("format", l_format)
     ]
   in
   List.iter (fun (name, f) -> Lua.register ls name f) functions

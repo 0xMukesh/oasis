@@ -177,6 +177,10 @@ function bor(x, y) end
 function bxor(x, y) end
 
 --- @param x integer
+--- @return integer
+function bnot(x) end
+
+--- @param x integer
 --- @param y integer
 --- @return integer
 function shl(x, y) end
@@ -205,6 +209,9 @@ function rotr(x, y) end
 --- @return integer
 function time() end
 
+--- @param str string
+function debug(str) end
+
 --- @param fmt string
---- @param ... any
-function _debug(fmt, ...) end
+--- @return string
+function format(fmt, ...) end

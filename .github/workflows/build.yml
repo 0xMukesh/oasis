@@ -48,7 +48,9 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
+          mkdir -p dist/roms
           cp "_build/default/${EXE_PATH}" "dist/${APP_NAME}"
+          cp ./carts/*.lua dist/carts/
           chmod +x "dist/${APP_NAME}"
           tar -czf "${APP_NAME}-${{ matrix.target }}.tar.gz" -C dist "${APP_NAME}"
 
