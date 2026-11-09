@@ -2,10 +2,10 @@ let subcommand_usage name = Printf.sprintf "oasis %s [options]\nOptions:" name
 let error_on_unknown_arg arg = raise @@ Arg.Bad ("unexpected argument: " ^ arg)
 
 let run_cmd argv =
-  let scale = ref 2.0 in
+  let scale = ref 2 in
   let cart = ref "" in
   let speclist =
-    [ ("--scale", Arg.Set_float scale, "<f> Display scale (default 2.0)")
+    [ ("--scale", Arg.Set_int scale, "<f> Display scale (default 2)")
     ; ("--cart", Arg.Set_string cart, "<path> Path to the cartridge")
     ]
     |> Arg.align

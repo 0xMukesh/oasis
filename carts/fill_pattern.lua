@@ -88,7 +88,7 @@ local function render_ui()
     cls(DARK_BLUE)
 
     fillp(pattern)
-    rect_fill(4, 4, W - 5, 39, bor(shl(BLUE, 4), LAVENDER)) -- pattern preview screen
+    rect_fill(4, 4, W - 5, 40, bor(shl(BLUE, 4), LAVENDER)) -- pattern preview screen
     fillp()
 
     line(3, 45, W - 4, 45, DARK_GRAY) -- divider

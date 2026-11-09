@@ -1,6 +1,6 @@
 val render
   :  string
-  -> scale:float
+  -> scale:int
   -> runtime:(module Runtime.Runtime)
   -> cart:string
   -> unit

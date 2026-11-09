@@ -16,13 +16,17 @@ local CELL_TYPE_ELEMENT  = "element"
 
 
 -- elements
-local EMPTY, SAND, WATER, WOOD, FIRE, STEAM = 0, 1, 2, 3, 4, 5
-local elements                              = {
+local EMPTY, SAND, WATER,
+WOOD, WALL, FIRE,
+STEAM, ACID    = 0, 1, 2, 3, 4, 5, 6, 7
+local elements = {
     { id = SAND,  text = "SAND",  color = YELLOW, },
     { id = WATER, text = "WATER", color = BLUE },
     { id = WOOD,  text = "WOOD",  color = BROWN },
+    { id = WALL,  text = "WALL",  color = DARK_GRAY },
     { id = FIRE,  text = "FIRE",  color = RED,       palette = { RED, ORANGE, YELLOW } },
     { id = STEAM, text = "STEAM", color = LIGHT_GRAY },
+    { id = ACID,  text = "ACID",  color = GREEN },
 }
 
 -- utils
@@ -47,7 +51,9 @@ end
 local function get_element_cell_color(i, j)
     local cell = grid[i][j]
 
-    if cell == FIRE then
+    if cell == EMPTY then
+        return BLACK
+    elseif cell == FIRE then
         local strength = fire_strength[i][j]
 
         if strength > max_fire_strength * 0.7 then
@@ -77,7 +83,9 @@ local function grid_swap(i1, j1, i2, j2)
 end
 
 local function update_sand(i, j)
-    if grid[i][j + 1] == EMPTY or grid[i][j + 1] == WATER then
+    -- if the cell just below is empty / water / acid, move down
+    -- else, check the cells at the bottom left and bottom right
+    if grid[i][j + 1] == EMPTY or grid[i][j + 1] == WATER or grid[i][i + 1] == ACID then
         grid_swap(i, j, i, j + 1)
         return
     end
@@ -93,6 +101,8 @@ local function update_sand(i, j)
 end
 
 local function update_water(i, j)
+    -- if the cell just below is empty, move down
+    -- else, check the cells to the left and right
     if grid[i][j + 1] == EMPTY then
         grid_swap(i, j, i, j + 1)
         return
@@ -109,10 +119,21 @@ local function update_water(i, j)
 end
 
 local function update_wood(i, j)
+    -- remains where it was placed
     grid[i][j] = WOOD
 end
 
+local function update_wall(i, j)
+    -- remains where it was placed
+    grid[i][j] = WALL
+end
+
 local function update_fire(i, j)
+    -- if the fire's strength is 0, change it to an empty cell
+    -- otherwise, check its neighbours:
+    --   1. if a neighbour is water, change that cell to steam
+    --   2. if a neighbour is wood, change that cell to fire and set its fire strength to max
+    -- at the end, reduce the fire strength of that specific cell
     if fire_strength[i][j] <= 0 then
         grid[i][j] = EMPTY
     end
@@ -123,11 +144,11 @@ local function update_fire(i, j)
             local next_j = j + dy
 
             if next_i >= 1 and next_i <= cols and next_j >= 1 and next_j <= rows then
-                if grid[i + dx][j + dy] == WATER then
-                    grid[i + dx][j + dy] = STEAM
-                elseif grid[i + dx][j + dy] == WOOD then
-                    grid[i + dx][j + dy] = FIRE
-                    fire_strength[i + dx][j + dy] = max_fire_strength
+                if grid[next_i][next_j] == WATER then
+                    grid[next_i][next_j] = STEAM
+                elseif grid[next_i][next_j] == WOOD then
+                    grid[next_i][next_j] = FIRE
+                    fire_strength[next_i][next_j] = max_fire_strength
                 end
             end
         end
@@ -137,17 +158,18 @@ local function update_fire(i, j)
 end
 
 local function update_steam(i, j)
+    -- if the cell above it is empty or contains water, move up
+    -- if it reaches y = 2, condense and convert back into water with a probability of 2%
     local choice = rnd({ -1, 1 })
     local next_i = i + choice
 
-    -- condensation
     if j < 2 then
         local random = rnd()
-        if random < 0.02 then -- 2% chance of the steam cell to be converted into water in this frame
+        if random < 0.02 then
             grid[i][j] = WATER
         end
     else
-        if next_i >= 1 and next_i <= cols and j - 1 >= 1 and j - 1 <= rows then
+        if next_i >= 1 and next_i <= cols and j - 1 >= 1 and j - 1 < rows then
             if grid[next_i][j - 1] == EMPTY or grid[next_i][j - 1] == WATER then
                 grid_swap(i, j, next_i, j - 1)
             end
@@ -155,9 +177,52 @@ local function update_steam(i, j)
     end
 end
 
+local function update_acid(i, j)
+    -- pick a random wood cell from the neighbouring and react with it
+    -- if there are no neighbouring wood cells, check the bottom cell
+    -- else, move sideways
+    local wood_neighbors = {}
+
+    for dx = -1, 1 do
+        for dy = -1, 1 do
+            if dx ~= 0 or dy ~= 0 then
+                local next_i = i + dx
+                local next_j = j + dy
+
+                if next_i >= 1 and next_i <= cols
+                    and next_j >= 1 and next_j <= rows
+                    and grid[next_i][next_j] == WOOD then
+                    wood_neighbors[#wood_neighbors + 1] = {
+                        next_i, next_j
+                    }
+                end
+            end
+        end
+    end
+
+    if #wood_neighbors > 0 then
+        local target = rnd(wood_neighbors)
+        grid[i][j] = EMPTY
+        grid[target[1]][target[2]] = ACID
+        return
+    end
+
+    if j < rows and grid[i][j + 1] == EMPTY then
+        grid_swap(i, j, i, j + 1)
+        return
+    end
+
+    local next_i = i + rnd({ -1, 1 })
+
+    if next_i >= 1 and next_i <= cols
+        and grid[next_i][j] == EMPTY then
+        grid_swap(i, j, next_i, j)
+    end
+end
+
 local function update_grid()
     for i = 1, cols do
-        for j = rows - 1, 1, -1 do
+        for j = rows, 1, -1 do
             local particle = grid[i][j]
 
             if particle == SAND then
@@ -166,10 +231,14 @@ local function update_grid()
                 update_water(i, j)
             elseif particle == WOOD then
                 update_wood(i, j)
+            elseif particle == WALL then
+                update_wall(i, j)
             elseif particle == FIRE then
                 update_fire(i, j)
             elseif particle == STEAM then
                 update_steam(i, j)
+            elseif particle == ACID then
+                update_acid(i, j)
             end
         end
     end
@@ -218,13 +287,21 @@ local function create_cursor()
             if self.j > rows then self.j = rows end
 
             if selected_element ~= nil and self.j < rows then
-                if grid[self.i][self.j] == EMPTY then
+                if grid[self.i][self.j] == EMPTY or
+                    (selected_element == FIRE and grid[self.i][self.j] == WATER) then
                     grid[self.i][self.j] = selected_element
                 end
             end
         end,
         update = function(self)
-            if btnp(A) then
+            -- hold a and b: clear out the all the elements in the way
+            -- a: cycle through elements
+            -- b: exit out of cycle
+
+            if btn(A) and btn(B) then
+                grid[self.i][self.j] = EMPTY
+                selected_element = nil
+            elseif btnp(A) then
                 if selected_element == nil then
                     selected_element = 1
                 else
@@ -233,7 +310,7 @@ local function create_cursor()
                         selected_element = nil
                     end
                 end
-            elseif btnp(B) then
+            elseif btn(B) then
                 selected_element = nil
             end
 

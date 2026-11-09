@@ -51,16 +51,6 @@ let read_bool ls i =
 
 let read_int ls i = read_num ls i |> int_of_float
 
-let read_list ~convertor ls i =
-  let n = Lua.objlen ls i in
-  List.init n (fun j ->
-    Lua.rawgeti ls i (j + 1);
-    let value = convertor ls (-1) in
-    Lua.pop ls 1;
-    value
-  )
-;;
-
 let read_color ls i =
   let pen_color = Color.int_of_packed_color Core.Graphics.pen_color in
   let lc = LuaL.optint ls i pen_color in
@@ -224,20 +214,25 @@ let l_atan2 ls = binary lua_float_ops Math.atan2 ls
 
 (* rnd / rnd limit / rnd table *)
 let l_rnd ls =
-  if Lua.gettop ls = 0
+  let top = Lua.gettop ls in
+  if top = 0
   then (
     Lua.pushnumber ls (Math.rnd 1.0);
     1
   )
-  else if Lua.isnumber ls (-1)
-  then unary lua_float_ops Math.rnd ls
-  else if Lua.istable ls (-1)
+  else if Lua.istable ls 1
   then (
-    let l = read_list ~convertor:Lua.tonumber ls 1 in
-    let result = Math.rnd_list l in
-    Lua.pushnumber ls result;
-    1
+    let n = Lua.objlen ls 1 in
+    if n = 0
+    then arg_error ls 1 "table is empty"
+    else (
+      let i = 1 + Random.int n in
+      Lua.rawgeti ls 1 i;
+      1
+    )
   )
+  else if Lua.isnumber ls 1
+  then unary lua_float_ops Math.rnd ls
   else arg_error ls 1 "argument can be either a number or table"
 ;;
 

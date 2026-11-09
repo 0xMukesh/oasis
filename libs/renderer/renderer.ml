@@ -30,8 +30,8 @@ let render title ~scale ~runtime ~cart =
   let vm = R.create_vm () in
   R.load_cart vm cart;
 
-  let width = int_of_float (float_of_int Graphics.w *. scale) in
-  let height = int_of_float (float_of_int Graphics.h *. scale) in
+  let width = Graphics.w * scale in
+  let height = Graphics.h * scale in
   init_window width height title;
 
   let image = gen_image_color Graphics.w Graphics.h RLColor.black in
@@ -60,7 +60,7 @@ let render title ~scale ~runtime ~cart =
     update_pixels ();
 
     update_texture texture (Ctypes.to_voidp (CArray.start pixels));
-    draw_texture_ex texture (Vector2.create 0. 0.) 0. scale RLColor.white;
+    draw_texture_ex texture (Vector2.create 0. 0.) 0. (float_of_int scale) RLColor.white;
     end_drawing ()
   done;
 
