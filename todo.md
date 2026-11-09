@@ -1,0 +1,26 @@
+# Todo
+
+- [x] Implement math functions (http://pico8wiki.com/index.php?title=APIReference#Math)
+- [x] Split `Core` module into sub-modules: `Core.Graphics`, `Core.Math`, `Core.Color`
+- [x] Implement the other remaining drawing functions (http://pico8wiki.com/index.php?title=Graphics)
+  - [x] `pget`
+  - [x] `cls`
+  - [x] `color`
+- [x] Make a safer alternative to `LuaL.checknumber` (https://github.com/c-cube/ezlua#ocaml-5-safety)
+- [x] Implement `fillp` function (http://pico8wiki.com/index.php?title=Fillp)
+- [x] Implement `debug` function which prints to host machine's stdout
+- [x] Add support for keyboard input controls (http://pico8wiki.com/index.php?title=APIReference#Input)
+- [x] Implement `print` function which renders text onto the screen
+- [x] Add memory constraints
+- [ ] Add CPU constraints
+- [ ] Add constraints on cartridge size
+- [ ] Add support for sprites
+- [ ] Add support for tile maps
+- [ ] Design a memory map which acts like a "router" to interact with the different data structures within the `Core` module (http://pico8wiki.com/index.php?title=Memory#Memory_map)
+- [ ] Implement a "bootloader" cartridge
+- [ ] Add support for print control codes (http://pico8wiki.com/index.php?title=P8SCII_Control_Codes)
+- [ ] Add support for sound (http://pico8wiki.com/index.php?title=APIReference#Sound)
+- [ ] Add support for Lua 5.2 along with some of the syntatic sugar which PICO-8 offers like `? "hello"` is equivalent to `print("hello")` (https://github.com/samhocevar/z8lua)
+- [ ] Support for hot-reloading catridges while developing
+- [ ] Implement a command to auto-generate the Lua type definitions (`.d.lua`)
+- [ ] Add support for a Lisp-like lanaguage
